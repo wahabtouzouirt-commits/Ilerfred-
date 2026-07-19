@@ -257,8 +257,13 @@ function isPreparing(d) {
 // ============================================================
 // BINANCE FETCH
 // ============================================================
+// FIX: api.binance.com bloquea (HTTP 451) peticiones desde IPs de GitHub Actions
+// (datacenters en EEUU, restringidos por Binance). data-api.binance.vision es un
+// espejo público de solo-lectura de datos de mercado sin esa restricción.
+const BINANCE_BASE = 'https://data-api.binance.vision';
+
 async function klines(symbol, interval, limit) {
-  const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+  const url = `${BINANCE_BASE}/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
   const r = await fetch(url);
   if (!r.ok) throw new Error(`Binance error ${r.status} for ${symbol} ${interval}`);
   return r.json();
