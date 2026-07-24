@@ -1,15 +1,16 @@
-name: ScalpScan Alertas
+name: Scan
 
 on:
+  workflow_dispatch: {}
+  # Respaldo interno (poco fiable en repos públicos gratuitos, por eso usamos cron-job.org como disparador principal)
   schedule:
     - cron: '*/15 * * * *'
-  workflow_dispatch: {}
 
 jobs:
   scan:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Node
