@@ -1,19 +1,15 @@
 // ============================================================
-// ScalpScan Pro - Alert Bot (v6.8 lógica) - Node.js
-// Escanea 50 pares en Binance, aplica la MISMA lógica que el
-// scanner web (4H obligatorio + gates de volumen MTF, incl.
-// PREPARING) y manda un mensaje a Telegram si hay ELITE/SUPER/PREP.
-//
-// Requiere Node 18+ (fetch nativo). Variables de entorno:
-//   TELEGRAM_BOT_TOKEN
-//   TELEGRAM_CHAT_ID
+// ScalpScan Pro v6.8 — versión servidor (Node) para GitHub Actions
+// Misma lógica que el HTML (evalPair, earlyWarning, gates MTF de volumen),
+// pero en vez de pintar tarjetas, envía alertas a Telegram.
 // ============================================================
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const CHAT_ID   = process.env.TELEGRAM_CHAT_ID;
+const BINANCE_BASE = 'https://data-api.binance.vision'; // evita bloqueos por IP (igual que en el bot ya desplegado)
+const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
-if (!BOT_TOKEN || !CHAT_ID) {
-  console.error('Faltan TELEGRAM_BOT_TOKEN o TELEGRAM_CHAT_ID en el entorno.');
+if (!TELEGRAM_TOKEN || !TELEGRAM_CHAT_ID) {
+  console.error('Faltan TELEGRAM_BOT_TOKEN o TELEGRAM_CHAT_ID en el entorno (secrets).');
   process.exit(1);
 }
 
@@ -30,13 +26,11 @@ const PAIRS = [
   'RENDERUSDT','THETAUSDT','GALAUSDT','SANDUSDT','MANAUSDT'
 ];
 
-const MTF_MIN_VOL     = 1.0;
+const MTF_MIN_VOL = 1.0;
 const PREP_MIN_VOL_4H = 0.5;
 const PREP_MIN_VOL_1H = 0.8;
 
-// ============================================================
-// INDICADORES (mismos que el scanner web v6.8)
-// ============================================================
+// ---------------- Indicadores (idénticos al HTML) ----------------
 function ema(p, n) {
   if (p.length < n) return null;
   const k = 2 / (n + 1);
@@ -93,6 +87,7 @@ function trendGeneric(candles) {
   return bull >= 3 ? 'bull' : bull <= 1 ? 'bear' : 'neutral';
 }
 
+// ---------------- earlyWarning (PREPARING, con gate v6.8) ----------------
 function earlyWarning(closes, candles, htf1h, htf4h, vol1h, vol4h) {
   const p = closes[closes.length - 1];
   const e9 = ema(closes, 9), e21 = ema(closes, 21), e50 = ema(closes, 50);
@@ -102,7 +97,6 @@ function earlyWarning(closes, candles, htf1h, htf4h, vol1h, vol4h) {
   const sk = stochRsi(closes), psk = stochRsi(prev);
   const bb = boll(closes);
   const vol = volSpikeCalc(candles);
-
   if (!e9 || !e21 || !e50 || !pe9 || !pe21 || r === null) return null;
 
   const emaCrossingLong  = pe9 <= pe21 && e9 > e21 * 0.998 && e9 < e21 * 1.005;
@@ -136,26 +130,22 @@ function earlyWarning(closes, candles, htf1h, htf4h, vol1h, vol4h) {
   const direction = prepLong ? 'preparing_long' : 'preparing_short';
   let triggers = [];
   if (prepLong) {
-    if (emaCrossingLong)   triggers.push('EMA 9/21 cruzando ↑');
-    if (rsiNearLong)       triggers.push(`RSI ${r.toFixed(1)} → cruzando 50`);
-    if (sqz)               triggers.push('BB squeeze → explosión inminente');
-    if (volBuilding)       triggers.push(`Vol ${vol.ratio.toFixed(1)}x construyendo`);
-    if (stochCrossingLong) triggers.push('StochK cruzando ↑');
+    if (emaCrossingLong)     triggers.push('EMA 9/21 cruzando ↑');
+    if (rsiNearLong)         triggers.push(`RSI ${r.toFixed(1)} → cruzando 50`);
+    if (sqz)                 triggers.push('BB squeeze');
+    if (volBuilding)         triggers.push(`Vol ${vol.ratio.toFixed(1)}x construyendo`);
+    if (stochCrossingLong)   triggers.push('StochK cruzando ↑');
   } else {
-    if (emaCrossingShort)   triggers.push('EMA 9/21 cruzando ↓');
-    if (rsiNearShort)       triggers.push(`RSI ${r.toFixed(1)} → cruzando 50`);
-    if (sqz)                triggers.push('BB squeeze → explosión inminente');
-    if (volBuilding)        triggers.push(`Vol ${vol.ratio.toFixed(1)}x construyendo`);
-    if (stochCrossingShort) triggers.push('StochK cruzando ↓');
+    if (emaCrossingShort)    triggers.push('EMA 9/21 cruzando ↓');
+    if (rsiNearShort)        triggers.push(`RSI ${r.toFixed(1)} → cruzando 50`);
+    if (sqz)                 triggers.push('BB squeeze');
+    if (volBuilding)         triggers.push(`Vol ${vol.ratio.toFixed(1)}x construyendo`);
+    if (stochCrossingShort)  triggers.push('StochK cruzando ↓');
   }
-
-  return {
-    signal: direction, triggers, score: triggers.length,
-    price: p, rsi: r, stochK: sk.k, bb, vol, squeeze: sqz,
-    pbPct: e9 ? Math.abs(p - e9) / e9 * 100 : 0
-  };
+  return { signal: direction, triggers, score: triggers.length, price: p, rsi: r, stochK: sk.k, vol };
 }
 
+// ---------------- evalPair (señales confirmadas) ----------------
 function evalPair(closes, candles) {
   const p = closes[closes.length - 1];
   const e9 = ema(closes, 9), e21 = ema(closes, 21), e50 = ema(closes, 50);
@@ -207,156 +197,145 @@ function evalPair(closes, candles) {
   else if (trendShortValid && !lv) { signal = 'trend_short';  score = tss; }
   else                             { signal = 'neutral';      score = Math.max(ls, ss, tls, tss); }
   const pbPct = e9 ? Math.abs(p - e9) / e9 * 100 : 0;
-  return { price: p, rsi: r, stochK: sk.k, bb, vol, squeeze: sqz, signal, score, pbPct };
+  return { price: p, rsi: r, stochK: sk.k, stochD: sk.d, bb, vol, squeeze: sqz, signal, score, pbPct };
 }
 
-function mtfVolumeOk(vol1h, vol4h) {
-  const v1 = typeof vol1h === 'number' ? vol1h : 0;
-  const v4 = typeof vol4h === 'number' ? vol4h : 0;
+// ---------------- Gates ----------------
+function isPreparing(c) { return c.d.signal === 'preparing_long' || c.d.signal === 'preparing_short'; }
+function mtfVolumeOk(c) {
+  const v1 = typeof c.vol1h === 'number' ? c.vol1h : 0;
+  const v4 = typeof c.vol4h === 'number' ? c.vol4h : 0;
   return v1 >= MTF_MIN_VOL && v4 >= MTF_MIN_VOL;
 }
-function isConfirmed(d, htf, htf4h, vol1h, vol4h) {
-  if (!d || d.signal === 'neutral') return false;
-  if (htf4h !== (d.signal.includes('long') ? 'bull' : 'bear')) return false;
-  const longOk  = d.signal.includes('long')  && htf === 'bull';
-  const shortOk = d.signal.includes('short') && htf === 'bear';
+function isConfirmed(c) {
+  if (c.d.signal === 'neutral' || isPreparing(c)) return false;
+  if (c.htf4h !== (c.d.signal.includes('long') ? 'bull' : 'bear')) return false;
+  const longOk  = c.d.signal.includes('long')  && c.htf === 'bull';
+  const shortOk = c.d.signal.includes('short') && c.htf === 'bear';
   if (!(longOk || shortOk)) return false;
-  if (!mtfVolumeOk(vol1h, vol4h)) return false;
+  if (!mtfVolumeOk(c)) return false;
   return true;
 }
-function isSuperSignal(d, htf, htf4h, vol1h, vol4h) {
-  if (!isConfirmed(d, htf, htf4h, vol1h, vol4h)) return false;
-  if (d.score < 9) return false;
-  if (d.vol.ratio < 2.5) return false;
+function isSuperSignal(c) {
+  if (!isConfirmed(c)) return false;
+  if (c.d.score < 9) return false;
+  if (c.d.vol.ratio < 2.5) return false;
   return true;
 }
-function isEliteSignal(d, htf, htf4h, vol1h, vol4h) {
-  if (!isSuperSignal(d, htf, htf4h, vol1h, vol4h)) return false;
-  const isLong = d.signal.includes('long');
-  const stoch = d.stochK;
+function isEliteSignal(c) {
+  if (!isSuperSignal(c)) return false;
+  const isLong = c.d.signal.includes('long');
+  const stoch = c.d.stochK;
   if (stoch === null) return false;
   if (isLong && stoch > 35) return false;
   if (!isLong && stoch < 65) return false;
-  if (d.pbPct > 1.5) return false;
-  const rsi = d.rsi;
+  if (c.d.pbPct > 1.5) return false;
+  const rsi = c.d.rsi;
   if (isLong && (rsi < 40 || rsi > 68)) return false;
   if (!isLong && (rsi < 32 || rsi > 60)) return false;
   let slPct = 0;
-  if (d.bb) {
-    if (isLong) slPct = (d.price - d.bb.lower) / d.price * 100;
-    else slPct = (d.bb.upper - d.price) / d.price * 100;
+  if (c.d.bb) {
+    if (isLong) slPct = (c.d.price - c.d.bb.lower) / c.d.price * 100;
+    else slPct = (c.d.bb.upper - c.d.price) / c.d.price * 100;
   } else slPct = 1.5;
   if (slPct > 1.8) return false;
-  if (d.squeeze) return false;
+  if (c.d.squeeze) return false;
   return true;
 }
-function isPreparing(d) {
-  return d && (d.signal === 'preparing_long' || d.signal === 'preparing_short');
+function has4HAlignment(c) {
+  if (isPreparing(c)) return c.htf4h === (c.d.signal === 'preparing_long' ? 'bull' : 'bear');
+  if (c.d.signal === 'neutral') return false;
+  return c.htf4h === (c.d.signal.includes('long') ? 'bull' : 'bear');
 }
 
-// ============================================================
-// BINANCE FETCH
-// ============================================================
-// FIX: api.binance.com bloquea (HTTP 451) peticiones desde IPs de GitHub Actions
-// (datacenters en EEUU, restringidos por Binance). data-api.binance.vision es un
-// espejo público de solo-lectura de datos de mercado sin esa restricción.
-const BINANCE_BASE = 'https://data-api.binance.vision';
-
+// ---------------- Binance fetch ----------------
 async function klines(symbol, interval, limit) {
   const url = `${BINANCE_BASE}/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
   const r = await fetch(url);
-  if (!r.ok) throw new Error(`Binance error ${r.status} for ${symbol} ${interval}`);
+  if (!r.ok) throw new Error(`Binance ${symbol} ${interval} -> ${r.status}`);
   return r.json();
 }
 
-async function scanPair(symbol) {
-  const [c15, c1h, c4h] = await Promise.all([
-    klines(symbol, '15m', 150),
-    klines(symbol, '1h', 100),
-    klines(symbol, '4h', 50)
-  ]);
-  const closes15 = c15.map(c => parseFloat(c[4]));
-  const htf1h = trendGeneric(c1h);
-  const htf4h = trendGeneric(c4h);
-  const vol1h = c1h.length >= 21 ? volSpikeCalc(c1h).ratio : 0;
-  const vol4h = c4h.length >= 21 ? volSpikeCalc(c4h).ratio : 0;
-
-  let d = evalPair(closes15, c15);
-  if (!d) return null;
-
-  const hasConfirmed4H = d.signal !== 'neutral' && htf4h === (d.signal.includes('long') ? 'bull' : 'bear');
-  if (!hasConfirmed4H) {
-    const ew = earlyWarning(closes15, c15, htf1h, htf4h, vol1h, vol4h);
-    if (ew) d = ew;
-    else d = { ...d, signal: 'neutral' };
-  }
-
-  return { symbol, d, htf1h, htf4h, vol1h, vol4h };
-}
-
-function classify(r) {
-  const { d, htf1h, htf4h, vol1h, vol4h } = r;
-  if (isEliteSignal(d, htf1h, htf4h, vol1h, vol4h)) return 'ELITE';
-  if (isSuperSignal(d, htf1h, htf4h, vol1h, vol4h)) return 'SUPER';
-  if (isPreparing(d) && htf4h === (d.signal === 'preparing_long' ? 'bull' : 'bear')) return 'PREPARING';
-  return null;
-}
-
+// ---------------- Telegram ----------------
 async function sendTelegram(text) {
-  const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+  const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
   const r = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: CHAT_ID, text, parse_mode: 'HTML' })
+    body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text, parse_mode: 'HTML' })
   });
   if (!r.ok) {
     const body = await r.text();
-    console.error('Error enviando a Telegram:', r.status, body);
+    console.error('Telegram error', r.status, body);
   }
 }
 
-function fmtSignal(r, tipo) {
-  const { symbol, d, vol1h, vol4h } = r;
-  const dirEmoji = d.signal.includes('long') ? '🟢 LONG' : '🔴 SHORT';
-  const tipoEmoji = tipo === 'ELITE' ? '👑 ELITE' : tipo === 'SUPER' ? '⭐ SUPER' : '⏳ PREPARING';
+function fmtPrice(v) { return v < 0.01 ? v.toFixed(6) : v < 1 ? v.toFixed(4) : v < 100 ? v.toFixed(3) : v.toFixed(2); }
+
+function buildMessage(r) {
+  const tipo = isEliteSignal(r) ? '👑 ELITE' : isSuperSignal(r) ? '⭐ SUPER' : '⏳ PREPARING';
+  const dir = r.d.signal.includes('long') ? 'LONG' : 'SHORT';
   return [
-    `${tipoEmoji} · ${symbol.replace('USDT','/USDT')} · ${dirEmoji}`,
-    `Score: ${d.score}/9 · Precio: ${d.price}`,
-    `RSI: ${d.rsi.toFixed(1)} · StochK: ${d.stochK !== null ? d.stochK.toFixed(1) : '–'}`,
-    `Vol 15M: ${d.vol.ratio.toFixed(1)}x · Vol 1H: ${(vol1h||0).toFixed(1)}x · Vol 4H: ${(vol4h||0).toFixed(1)}x`
+    `<b>${tipo} · ${r.symbol.replace('USDT','/USDT')} · ${dir}</b>`,
+    `Precio: $${fmtPrice(r.d.price)}`,
+    `Score: ${r.d.score}/9`,
+    `RSI: ${r.d.rsi.toFixed(1)} · StochK: ${r.d.stochK !== null ? r.d.stochK.toFixed(1) : '–'}`,
+    `Vol 15M: ${r.d.vol.ratio.toFixed(1)}x · Vol 1H: ${(r.vol1h||0).toFixed(1)}x · Vol 4H: ${(r.vol4h||0).toFixed(1)}x`,
+    `4H: ${r.htf4h === 'bull' ? '▲' : '▼'} · 1H: ${r.htf === 'bull' ? '▲' : '▼'}`
   ].join('\n');
 }
 
+// ---------------- Main ----------------
 async function main() {
-  const found = [];
-  for (const sym of PAIRS) {
+  const alerts = [];
+  for (const symbol of PAIRS) {
     try {
-      const r = await scanPair(sym);
-      if (!r) continue;
-      const tipo = classify(r);
-      if (tipo) found.push({ r, tipo });
+      const [c15, c1h, c4h] = await Promise.all([
+        klines(symbol, '15m', 150),
+        klines(symbol, '1h', 100),
+        klines(symbol, '4h', 50)
+      ]);
+      const closes = c15.map(c => parseFloat(c[4]));
+      const htf1h = trendGeneric(c1h);
+      const htf4h = trendGeneric(c4h);
+      const vol1h = c1h.length >= 21 ? volSpikeCalc(c1h).ratio : 0;
+      const vol4h = c4h.length >= 21 ? volSpikeCalc(c4h).ratio : 0;
+
+      let d = evalPair(closes, c15);
+      if (!d) continue;
+
+      const hasConfirmed4H = d.signal !== 'neutral' && htf4h === (d.signal.includes('long') ? 'bull' : 'bear');
+      if (!hasConfirmed4H) {
+        const ew = earlyWarning(closes, c15, htf1h, htf4h, vol1h, vol4h);
+        if (ew) d = ew;
+        else d = { ...d, signal: 'neutral' };
+      }
+
+      const card = { symbol, d, htf: htf1h, htf4h, vol1h, vol4h };
+      if (d.signal === 'neutral') continue;
+      if (isEliteSignal(card) || isSuperSignal(card) || (isPreparing(card) && has4HAlignment(card))) {
+        alerts.push(card);
+      }
     } catch (e) {
-      console.error(`Error escaneando ${sym}:`, e.message);
+      console.error(`Error en ${symbol}:`, e.message);
     }
-    await new Promise(res => setTimeout(res, 60)); // evitar rate limit de Binance
   }
 
-  if (found.length === 0) {
-    console.log('Sin señales ELITE/SUPER/PREPARING en este escaneo.');
+  if (alerts.length === 0) {
+    console.log('Sin señales calificadas en este escaneo.');
     return;
   }
 
-  // Ordenar: ELITE > SUPER > PREPARING
-  const rank = t => t === 'ELITE' ? 0 : t === 'SUPER' ? 1 : 2;
-  found.sort((a, b) => rank(a.tipo) - rank(b.tipo));
+  // Orden: ELITE > SUPER > PREPARING
+  alerts.sort((a, b) => {
+    const rank = c => isEliteSignal(c) ? 0 : isSuperSignal(c) ? 1 : 2;
+    return rank(a) - rank(b);
+  });
 
-  const header = `📊 <b>ScalpScan Alertas</b> · ${found.length} señal${found.length !== 1 ? 'es' : ''} · ${new Date().toLocaleTimeString('es-ES', { timeZone: 'Europe/Madrid' })}`;
-  const body = found.map(({ r, tipo }) => fmtSignal(r, tipo)).join('\n\n');
-  await sendTelegram(`${header}\n\n${body}`);
-  console.log(`Enviadas ${found.length} señal(es) a Telegram.`);
+  for (const card of alerts) {
+    await sendTelegram(buildMessage(card));
+  }
+  console.log(`Enviadas ${alerts.length} alertas a Telegram.`);
 }
 
-main().catch(e => {
-  console.error('Error fatal:', e);
-  process.exit(1);
-});
+main().catch(e => { console.error('Fallo general:', e); process.exit(1); });
