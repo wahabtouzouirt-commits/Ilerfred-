@@ -107,8 +107,10 @@ function earlyWarning(closes, candles, htf1h, htf4h, vol1h, vol4h) {
 
   const emaCrossingLong  = pe9 <= pe21 && e9 > e21 * 0.998 && e9 < e21 * 1.005;
   const emaCrossingShort = pe9 >= pe21 && e9 < e21 * 1.002 && e9 > e21 * 0.995;
-  const rsiNearLong  = r >= 46 && r <= 52;
-  const rsiNearShort = r >= 48 && r <= 54;
+  // FIX D — ventana RSI ampliada (antes 46-52 / 48-54) para detectar el giro
+  // un poco antes y no llegar tan lejos cuando la señal confirma.
+  const rsiNearLong  = r >= 44 && r <= 54;
+  const rsiNearShort = r >= 46 && r <= 56;
   const sqz = bb ? bb.std / bb.mid < 0.015 : false;
   const volBuilding = vol.ratio >= 1.2 && vol.ratio < 2.0;
   const stochCrossingLong  = psk.k !== null && sk.k !== null && psk.k < psk.d && sk.k >= sk.d && sk.k < 40;
