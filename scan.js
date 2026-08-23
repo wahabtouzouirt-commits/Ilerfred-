@@ -30,9 +30,11 @@ const PAIRS = [
   'RENDERUSDT','THETAUSDT','GALAUSDT','SANDUSDT','MANAUSDT'
 ];
 
-const MTF_MIN_VOL     = 1.0;
-const PREP_MIN_VOL_4H = 0.5;
-const PREP_MIN_VOL_1H = 0.8;
+// MODO AGRESIVO — umbrales relajados a propósito para generar más señales.
+// Esto sube el ruido/falsos positivos; es el trade-off pedido.
+const MTF_MIN_VOL     = 0.7;
+const PREP_MIN_VOL_4H = 0.3;
+const PREP_MIN_VOL_1H = 0.5;
 
 // ============================================================
 // INDICADORES (mismos que el scanner web v6.8)
@@ -228,8 +230,9 @@ function isConfirmed(d, htf, htf4h, vol1h, vol4h) {
 }
 function isSuperSignal(d, htf, htf4h, vol1h, vol4h) {
   if (!isConfirmed(d, htf, htf4h, vol1h, vol4h)) return false;
-  if (d.score < 9) return false;
-  if (d.vol.ratio < 2.5) return false;
+  // MODO AGRESIVO: score 9→7, vol 2.5x→1.8x
+  if (d.score < 7) return false;
+  if (d.vol.ratio < 1.8) return false;
   return true;
 }
 function isEliteSignal(d, htf, htf4h, vol1h, vol4h) {
@@ -237,18 +240,19 @@ function isEliteSignal(d, htf, htf4h, vol1h, vol4h) {
   const isLong = d.signal.includes('long');
   const stoch = d.stochK;
   if (stoch === null) return false;
-  if (isLong && stoch > 35) return false;
-  if (!isLong && stoch < 65) return false;
-  if (d.pbPct > 1.5) return false;
+  // MODO AGRESIVO: StochK 35/65 → 45/55, distancia EMA9 1.5%→2.5%, RSI más ancho
+  if (isLong && stoch > 45) return false;
+  if (!isLong && stoch < 55) return false;
+  if (d.pbPct > 2.5) return false;
   const rsi = d.rsi;
-  if (isLong && (rsi < 40 || rsi > 68)) return false;
-  if (!isLong && (rsi < 32 || rsi > 60)) return false;
+  if (isLong && (rsi < 35 || rsi > 72)) return false;
+  if (!isLong && (rsi < 28 || rsi > 65)) return false;
   let slPct = 0;
   if (d.bb) {
     if (isLong) slPct = (d.price - d.bb.lower) / d.price * 100;
     else slPct = (d.bb.upper - d.price) / d.price * 100;
   } else slPct = 1.5;
-  if (slPct > 1.8) return false;
+  if (slPct > 2.5) return false;
   if (d.squeeze) return false;
   return true;
 }
