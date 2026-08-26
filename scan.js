@@ -1,5 +1,5 @@
 // ============================================================
-// ScalpScan Pro - Alert Bot (v6.8 lógica) - Node.js
+// ScalpScan Pro - Alert Bot (v6.8 lógica + FIX E/F) - Node.js
 // Escanea 50 pares en Binance, aplica la MISMA lógica que el
 // scanner web (4H obligatorio + gates de volumen MTF, incl.
 // PREPARING) y manda un mensaje a Telegram si hay ELITE/SUPER/PREP.
@@ -35,6 +35,15 @@ const PAIRS = [
 const MTF_MIN_VOL     = 0.7;
 const PREP_MIN_VOL_4H = 0.3;
 const PREP_MIN_VOL_1H = 0.5;
+
+// FIX E — denominadores reales de cada sistema de score. earlyWarning() solo
+// puede generar 5 triggers como máximo (EMA cruzando, RSI cerca, squeeze,
+// vol construyendo, StochK cruzando), mientras que evalPair() puntúa sobre
+// 9 condiciones para señales confirmadas/trend. Antes fmtSignal() mostraba
+// siempre "/9" incluso para PREPARING, así que un "2/9" real de PREPARING
+// (que es en verdad 2 de 5, un 40%) se leía como un mediocre 22%.
+const CONFIRMED_MAX_SCORE = 9;
+const PREP_MAX_SCORE = 5;
 
 // ============================================================
 // INDICADORES (mismos que el scanner web v6.8)
@@ -219,8 +228,23 @@ function mtfVolumeOk(vol1h, vol4h) {
   const v4 = typeof vol4h === 'number' ? vol4h : 0;
   return v1 >= MTF_MIN_VOL && v4 >= MTF_MIN_VOL;
 }
+
+// FIX F — antes esta función usaba d.signal.includes('long'/'short'), que
+// también hace match con 'preparing_long'/'preparing_short'. En la práctica
+// no se colaba ninguna PREPARING como SUPER/ELITE porque su score (máx. 5)
+// nunca llegaba al umbral de isSuperSignal (≥7), pero era una condición
+// frágil: si algún día el score máximo de earlyWarning() sube, o el umbral
+// de SUPER baja de 5, una PREPARING podría promocionarse a SUPER/ELITE sin
+// pasar por sus propios gates de volumen (0.3x/0.5x en vez de 0.7x).
+// Ahora se exige explícitamente que la señal sea de un tipo "confirmado"
+// real (early_/trend_), nunca preparing_.
+function isConfirmedSignalType(signal) {
+  return signal === 'early_long' || signal === 'early_short' ||
+         signal === 'trend_long' || signal === 'trend_short';
+}
 function isConfirmed(d, htf, htf4h, vol1h, vol4h) {
   if (!d || d.signal === 'neutral') return false;
+  if (!isConfirmedSignalType(d.signal)) return false; // FIX F
   if (htf4h !== (d.signal.includes('long') ? 'bull' : 'bear')) return false;
   const longOk  = d.signal.includes('long')  && htf === 'bull';
   const shortOk = d.signal.includes('short') && htf === 'bear';
@@ -325,9 +349,11 @@ function fmtSignal(r, tipo) {
   const { symbol, d, vol1h, vol4h } = r;
   const dirEmoji = d.signal.includes('long') ? '🟢 LONG' : '🔴 SHORT';
   const tipoEmoji = tipo === 'ELITE' ? '👑 ELITE' : tipo === 'SUPER' ? '⭐ SUPER' : '⏳ PREPARING';
+  // FIX E — denominador correcto según el tipo de señal (ver comentario arriba)
+  const maxScore = tipo === 'PREPARING' ? PREP_MAX_SCORE : CONFIRMED_MAX_SCORE;
   return [
     `${tipoEmoji} · ${symbol.replace('USDT','/USDT')} · ${dirEmoji}`,
-    `Score: ${d.score}/9 · Precio: ${d.price}`,
+    `Score: ${d.score}/${maxScore} · Precio: ${d.price}`,
     `RSI: ${d.rsi.toFixed(1)} · StochK: ${d.stochK !== null ? d.stochK.toFixed(1) : '–'}`,
     `Vol 15M: ${d.vol.ratio.toFixed(1)}x · Vol 1H: ${(vol1h||0).toFixed(1)}x · Vol 4H: ${(vol4h||0).toFixed(1)}x`
   ].join('\n');
