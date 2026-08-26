@@ -385,6 +385,14 @@ const MTF_MIN_VOL = 1.0;
 const PREP_MIN_VOL_4H = 0.5;
 const PREP_MIN_VOL_1H = 0.8;
 
+// FIX E (paridad con scan.js) — earlyWarning() genera máx. 5 triggers,
+// evalPair() puntúa sobre 9 condiciones. Antes toda la UI mostraba "/9"
+// también para PREPARING, infravalorando su score real (un 2/9 real de
+// PREPARING es en verdad 2 de 5, un 40%, no un 22%).
+const CONFIRMED_MAX_SCORE = 9;
+const PREP_MAX_SCORE = 5;
+function scoreMaxFor(isPrepFlag) { return isPrepFlag ? PREP_MAX_SCORE : CONFIRMED_MAX_SCORE; }
+
 // ============================================================
 // INDICADORES
 // ============================================================
