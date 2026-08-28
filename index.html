@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ScalpScan Pro v6.8 - Validación Volumen Multi-TF (incl. PREPARING)</title>
+<title>ScalpScan Pro v6.9 - Modo Agresivo (Validación Volumen Multi-TF incl. PREPARING)</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -229,7 +229,7 @@
 <div class="header">
   <div class="logo">SCALP<span>SCAN</span> PRO</div>
   <div class="badges">
-    <div class="badge badge-v">v6.8 · PREP VOL MTF FIX</div>
+    <div class="badge badge-v">v6.9 · MODO AGRESIVO</div>
     <div class="badge badge-tf">4H→1H→15M · TOP 50</div>
   </div>
 </div>
@@ -262,7 +262,7 @@
   <button class="fbtn" onclick="setFilter('confirmed',this)">✅ 1H CONF</button>
   <button class="fbtn" onclick="setFilter('signals',this)">🎯 SEÑALES</button>
   <button class="fbtn" onclick="setFilter('all',this)">TODOS</button>
-  <span class="filter-rule">🔒 4H OBLIGATORIO · VOL 4H+1H ≥1.0x (PREP ≥0.5x/0.8x)</span>
+  <span class="filter-rule">🔒 4H OBLIGATORIO · VOL 4H+1H ≥0.7x (PREP ≥0.3x/0.5x) · AGRESIVO</span>
 </div>
 
 <div class="capbar">
@@ -317,7 +317,7 @@
 
 <div class="footer">
   <span id="tsLeft">—</span>
-  <span>BINANCE · 4H→1H→15M · Top 50 · v6.8 · 4H OBLIGATORIO · VOL MULTI-TF (CONFIRMADAS ≥1.0x · PREP ≥0.5x/0.8x) · ⏳ EARLY WARNING · 📊 Click tarjeta para gráfico</span>
+  <span>BINANCE · 4H→1H→15M · Top 50 · v6.9 MODO AGRESIVO · 4H OBLIGATORIO · VOL MULTI-TF (CONFIRMADAS ≥0.7x · PREP ≥0.3x/0.5x) · ⏳ EARLY WARNING · 📊 Click tarjeta para gráfico</span>
 </div>
 
 <!-- CHART MODAL -->
@@ -373,17 +373,14 @@ let historyOpen = true;
 const htfCache = {};
 const HTF_CACHE_TTL = 15 * 60 * 1000;
 
-// Umbral mínimo de volumen exigido en 4H y 1H para cualquier señal confirmada/SUPER/ELITE
-const MTF_MIN_VOL = 1.0;
-
-// FIX v6.8 — Umbrales de volumen MTF específicos para señales PREPARING (early warning).
-// Estas señales anticipan un movimiento antes de que el volumen se confirme del todo,
-// así que el gate es más laxo que el de las señales confirmadas (MTF_MIN_VOL=1.0),
-// pero sigue bloqueando volumen muerto en timeframes altos (ej. 4H a 0.2x), que era
-// exactamente el bug: una PREPARING pasaba con Vol 4H 0.2x porque earlyWarning() nunca
-// recibía ni comprobaba el volumen de 1H/4H, solo el de 15M.
-const PREP_MIN_VOL_4H = 0.5;
-const PREP_MIN_VOL_1H = 0.8;
+// ============================================================
+// MODO AGRESIVO — umbrales relajados a propósito para generar más señales,
+// sincronizados 1:1 con scan.js (bot de Telegram). Esto sube ruido/falsos
+// positivos; es el trade-off pedido.
+// ============================================================
+const MTF_MIN_VOL     = 0.7;   // antes 1.0
+const PREP_MIN_VOL_4H = 0.3;   // antes 0.5
+const PREP_MIN_VOL_1H = 0.5;   // antes 0.8
 
 // FIX E (paridad con scan.js) — earlyWarning() genera máx. 5 triggers,
 // evalPair() puntúa sobre 9 condiciones. Antes toda la UI mostraba "/9"
@@ -454,9 +451,9 @@ function trendGeneric(candles) {
 
 // ============================================================
 // EARLY WARNING — detecta señal a punto de formarse
-// FIX v6.8 — ahora recibe vol1h/vol4h y aplica un gate de volumen MTF
-// (antes solo comprobaba vol.ratio, que es el volumen de 15M, la señal se
-// podía disparar aunque el volumen en 1H/4H estuviera prácticamente muerto).
+// FIX v6.8 — recibe vol1h/vol4h y aplica un gate de volumen MTF.
+// FIX D (MODO AGRESIVO, paridad con scan.js) — ventana RSI ampliada
+// (antes 46-52/48-54) para detectar el giro un poco antes.
 // ============================================================
 function earlyWarning(closes, candles, htf1h, htf4h, vol1h, vol4h) {
   const p = closes[closes.length - 1];
@@ -474,8 +471,9 @@ function earlyWarning(closes, candles, htf1h, htf4h, vol1h, vol4h) {
   const emaCrossingLong  = pe9 <= pe21 && e9 > e21 * 0.998 && e9 < e21 * 1.005; // inminente cruce alcista
   const emaCrossingShort = pe9 >= pe21 && e9 < e21 * 1.002 && e9 > e21 * 0.995; // inminente cruce bajista
 
-  const rsiNearLong  = r >= 46 && r <= 52; // RSI a punto de cruzar 50 al alza
-  const rsiNearShort = r >= 48 && r <= 54; // RSI a punto de cruzar 50 a la baja
+  // FIX D (MODO AGRESIVO) — antes 46-52 / 48-54
+  const rsiNearLong  = r >= 44 && r <= 54; // RSI a punto de cruzar 50 al alza
+  const rsiNearShort = r >= 46 && r <= 56; // RSI a punto de cruzar 50 a la baja
 
   const sqz = bb ? bb.std / bb.mid < 0.015 : false; // BB apretando
   const volBuilding = vol.ratio >= 1.2 && vol.ratio < 2.0; // volumen creciendo
@@ -483,24 +481,18 @@ function earlyWarning(closes, candles, htf1h, htf4h, vol1h, vol4h) {
   const stochCrossingLong  = psk.k !== null && sk.k !== null && psk.k < psk.d && sk.k >= sk.d && sk.k < 40;
   const stochCrossingShort = psk.k !== null && sk.k !== null && psk.k > psk.d && sk.k <= sk.d && sk.k > 60;
 
-  // FIX v6.4.1 — Filtros de calidad para PREPARING:
   // Fix 1: Volumen mínimo 1.0x en 15M — sin volumen no hay señal real
   if (vol.ratio < 1.0) return null;
 
-  // FIX v6.8 — Fix 1b: Gate de volumen MTF (4H y 1H). Este es el bloqueador
-  // que faltaba: una PREPARING con Vol 15M alto pero Vol 4H/1H muy débil
-  // (mercado dormido en los timeframes altos) ya no puede pasar.
+  // FIX v6.8 — Fix 1b: Gate de volumen MTF (4H y 1H), umbral agresivo.
   const v1h = typeof vol1h === 'number' ? vol1h : 0;
   const v4h = typeof vol4h === 'number' ? vol4h : 0;
   if (v4h < PREP_MIN_VOL_4H || v1h < PREP_MIN_VOL_1H) return null;
 
   // Fix 2: StochK extremo — no entrar cuando ya está sobrecomprado/sobrevendido
-  // PREP LONG: StochK debe ser < 70 (no sobrecomprado)
-  // PREP SHORT: StochK debe ser > 30 (no sobrevendido)
   if (sk.k !== null) {
     const prepLongStochOk  = sk.k < 70;
     const prepShortStochOk = sk.k > 30;
-    // Pre-check: si va a ser LONG y stoch es alto, o SHORT y stoch es bajo → salir
     const goingLong  = htf4h === 'bull';
     const goingShort = htf4h === 'bear';
     if (goingLong  && !prepLongStochOk)  return null;
@@ -515,7 +507,6 @@ function earlyWarning(closes, candles, htf1h, htf4h, vol1h, vol4h) {
 
   const direction = prepLong ? 'preparing_long' : 'preparing_short';
 
-  // Calcular cuántos triggers se activan
   let triggers = [];
   if (prepLong) {
     if (emaCrossingLong)     triggers.push('EMA 9/21 cruzando ↑');
@@ -542,7 +533,6 @@ function earlyWarning(closes, candles, htf1h, htf4h, vol1h, vol4h) {
     bbPos: bb ? (p - bb.lower) / (bb.upper - bb.lower) : 0.5,
     pbPct: e9 ? Math.abs(p - e9) / e9 * 100 : 0,
     atr: atrCalc(candles),
-    // campos compatibles con evalPair para reusar funciones
     conds: triggers.map(t => ({ label: t, ok: true })),
     volSpike: vol.ratio >= 2.0,
     trendLongValid: false, trendShortValid: false
@@ -636,22 +626,25 @@ function isPreparing(card) {
   return card.d.signal === 'preparing_long' || card.d.signal === 'preparing_short';
 }
 
-// FIX v6.7 — Validación de volumen multi-timeframe.
-// Antes, isEliteSignal/isSuperSignal solo miraban card.d.vol.ratio, que es el
-// volumen de la vela de 15M (el timeframe de entrada). Eso permitía que una señal
-// pasara como ELITE TREND con 4H y 1H por debajo de 1.0x de volumen (ej. LINK con
-// Vol 4H 0.7x y Vol 1H 0.7x), porque solo el 15M (2.5x) se estaba comprobando.
-// Ahora exigimos volumen ≥1.0x en 4H Y en 1H, no solo en 15M.
+// FIX F (MODO AGRESIVO, paridad con scan.js) — antes esta comprobación
+// dependía únicamente de isPreparing() excluyendo el caso en isConfirmed().
+// Se añade un guard explícito por tipo de señal para que una preparing_*
+// nunca pueda evaluarse como confirmada/SUPER/ELITE, sin depender de que su
+// score máximo (5) se quede siempre por debajo del umbral de SUPER.
+function isConfirmedSignalType(signal) {
+  return signal === 'early_long' || signal === 'early_short' ||
+         signal === 'trend_long' || signal === 'trend_short';
+}
+
+// Validación de volumen multi-timeframe (umbral agresivo 0.7x, ver arriba).
 function mtfVolumeOk(card) {
   const v1 = typeof card.vol1h === 'number' ? card.vol1h : 0;
   const v4 = typeof card.vol4h === 'number' ? card.vol4h : 0;
   return v1 >= MTF_MIN_VOL && v4 >= MTF_MIN_VOL;
 }
 
-// FIX v6.8 — el mismo problema que mtfVolumeOk() resolvía para señales
-// confirmadas seguía existiendo para PREPARING: el gate vivía dentro de
-// earlyWarning() ahora (ver arriba), pero exponemos aquí una función espejo
-// para poder pintar el badge ✓/✗ en la tarjeta con el mismo criterio.
+// Espejo de mtfVolumeOk() para PREPARING (umbral agresivo 0.3x/0.5x),
+// usado para pintar el badge ✓/✗ en la tarjeta con el mismo criterio.
 function prepVolumeOk(card) {
   const v1 = typeof card.vol1h === 'number' ? card.vol1h : 0;
   const v4 = typeof card.vol4h === 'number' ? card.vol4h : 0;
@@ -660,19 +653,20 @@ function prepVolumeOk(card) {
 
 function isConfirmed(card) {
   if (card.d.signal === 'neutral' || isPreparing(card)) return false;
+  if (!isConfirmedSignalType(card.d.signal)) return false; // FIX F
   // 4H OBLIGATORIO
   if (card.htf4h !== (card.d.signal.includes('long') ? 'bull' : 'bear')) return false;
   const longOk  = card.d.signal.includes('long')  && card.htf === 'bull';
   const shortOk = card.d.signal.includes('short') && card.htf === 'bear';
   if (!(longOk || shortOk)) return false;
-  // FIX v6.7 — bloqueador de volumen multi-timeframe (ver mtfVolumeOk)
   if (!mtfVolumeOk(card)) return false;
   return true;
 }
 function isSuperSignal(card) {
   if (!isConfirmed(card)) return false;
-  if (card.d.score < 9) return false;
-  if (card.d.vol.ratio < 2.5) return false;
+  // MODO AGRESIVO: score 9→7, vol 2.5x→1.8x
+  if (card.d.score < 7) return false;
+  if (card.d.vol.ratio < 1.8) return false;
   return true;
 }
 function isEliteSignal(card) {
@@ -680,18 +674,19 @@ function isEliteSignal(card) {
   const isLong = card.d.signal.includes('long');
   const stoch = card.d.stochK;
   if (stoch === null) return false;
-  if (isLong && stoch > 35) return false;
-  if (!isLong && stoch < 65) return false;
-  if (card.d.pbPct > 1.5) return false;
+  // MODO AGRESIVO: StochK 35/65→45/55, dist EMA9 1.5%→2.5%, RSI más ancho, SL 1.8%→2.5%
+  if (isLong && stoch > 45) return false;
+  if (!isLong && stoch < 55) return false;
+  if (card.d.pbPct > 2.5) return false;
   const rsi = card.d.rsi;
-  if (isLong && (rsi < 40 || rsi > 68)) return false;
-  if (!isLong && (rsi < 32 || rsi > 60)) return false;
+  if (isLong && (rsi < 35 || rsi > 72)) return false;
+  if (!isLong && (rsi < 28 || rsi > 65)) return false;
   let slPct = 0;
   if (card.d.bb) {
     if (isLong) slPct = (card.d.price - card.d.bb.lower) / card.d.price * 100;
     else slPct = (card.d.bb.upper - card.d.price) / card.d.price * 100;
   } else slPct = 1.5;
-  if (slPct > 1.8) return false;
+  if (slPct > 2.5) return false;
   if (card.d.squeeze) return false;
   return true;
 }
@@ -711,7 +706,6 @@ function playBeep(type = 'normal') {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const now = audioCtx.currentTime;
     if (type === 'elite') {
-      // Fanfarria doble para ELITE
       [880, 1100].forEach((freq, i) => {
         const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
         osc.connect(gain); gain.connect(audioCtx.destination);
@@ -720,7 +714,6 @@ function playBeep(type = 'normal') {
         osc.start(now + i * 0.15); osc.stop(now + i * 0.15 + 0.2);
       });
     } else if (type === 'prep') {
-      // Tono suave para PREPARING
       const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
       osc.connect(gain); gain.connect(audioCtx.destination);
       osc.frequency.value = 440; gain.gain.setValueAtTime(0.15, now);
@@ -774,7 +767,6 @@ function addToHistory(results) {
 
   results.forEach(r => {
     if (r.d.signal === 'neutral') return;
-    // Solo guardar señales con 4H alineado
     if (!has4HAlignment(r)) return;
 
     let tipo = '';
@@ -782,9 +774,8 @@ function addToHistory(results) {
     else if (isSuperSignal(r)) tipo = 'SUPER';
     else if (isPreparing(r)) tipo = 'PREPARING';
     else if (isConfirmed(r)) tipo = 'CONF';
-    else return; // No guardar señales sin confirmación
+    else return;
 
-    // Evitar duplicados en la misma sesión (mismo símbolo + señal en menos de 15min)
     const key = `${r.symbol}|${r.d.signal}`;
     const cutoff = Date.now() - 15 * 60 * 1000;
     const exists = signalHistory.find(h => h.key === key && h.ts > cutoff);
@@ -805,7 +796,6 @@ function addToHistory(results) {
     });
   });
 
-  // Máximo 50 entradas
   if (signalHistory.length > 50) signalHistory = signalHistory.slice(0, 50);
   renderHistory();
 }
@@ -1076,7 +1066,6 @@ function renderCard(symbol, d, htf, htf4h, delay, vol1h, vol4h) {
                  : d.signal === 'preparing_short'  ? '⏳ PREP SHORT'
                  : '— NEUTRAL';
 
-  // Banner
   let banner = '';
   const alignedButVolFails = !isPrep && d.signal !== 'neutral' && aligned4h &&
     ((d.signal.includes('long') && htf === 'bull') || (d.signal.includes('short') && htf === 'bear')) &&
@@ -1088,10 +1077,8 @@ function renderCard(symbol, d, htf, htf4h, delay, vol1h, vol4h) {
     const dir = d.signal === 'preparing_long' ? 'LONG' : 'SHORT';
     banner = `<div class="banner b-preparing">⏳ PREPARING ${dir} · 4H ALINEADO · Vol 1H ${(vol1h||0).toFixed(1)}x · Vol 4H ${(vol4h||0).toFixed(1)}x · ${d.triggers ? d.triggers.slice(0,2).join(' · ') : 'Señal a punto de formarse'}</div>`;
   } else if (alignedButVolFails) {
-    // FIX v6.7: setup técnico y estructura HTF alineados, pero volumen 4H/1H
-    // insuficiente — antes esto podía clasificarse como ELITE/TREND fuerte.
     const dir = d.signal === 'trend_long' || d.signal === 'early_long' ? 'ALCISTA' : 'BAJISTA';
-    banner = `<div class="banner b-volwarn">⚠ 4H+1H ALINEADOS PERO VOL BAJO · Vol 1H ${(vol1h||0).toFixed(1)}x / Vol 4H ${(vol4h||0).toFixed(1)}x (mín 1.0x) · No es ELITE ni SUPER</div>`;
+    banner = `<div class="banner b-volwarn">⚠ 4H+1H ALINEADOS PERO VOL BAJO · Vol 1H ${(vol1h||0).toFixed(1)}x / Vol 4H ${(vol4h||0).toFixed(1)}x (mín ${MTF_MIN_VOL}x) · No es ELITE ni SUPER</div>`;
   } else if (tripleAligned) {
     banner = `<div class="banner b-elite" style="background:rgba(34,211,238,0.15);border-color:#22d3ee;color:#22d3ee;">✅ 4H+1H+15M ALINEADOS · Setup ideal</div>`;
   } else if (d.signal !== 'neutral' && isConf && d.score >= 8 && d.vol.ratio >= 2) {
@@ -1121,31 +1108,24 @@ function renderCard(symbol, d, htf, htf4h, delay, vol1h, vol4h) {
   const volPct = Math.min(d.vol.ratio * 50, 100);
   const vol1hPct = Math.min((vol1h||0) * 50, 100);
   const vol4hPct = Math.min((vol4h||0) * 50, 100);
-  // FIX v6.8 — el umbral usado para colorear las barras de Vol 1H/4H ahora
-  // depende de si la tarjeta es PREPARING (umbral más laxo) o confirmada (1.0x).
   const vol1hMinForCard = isPrep ? PREP_MIN_VOL_1H : MTF_MIN_VOL;
   const vol4hMinForCard = isPrep ? PREP_MIN_VOL_4H : MTF_MIN_VOL;
   const vol1hColor = (vol1h||0) >= vol1hMinForCard ? 'var(--vol)' : 'var(--short)';
   const vol4hColor = (vol4h||0) >= vol4hMinForCard ? 'var(--vol)' : 'var(--short)';
 
-  // Condiciones a mostrar
   let condHTML = '';
   if (isPrep) {
     condHTML = (d.triggers || []).map(t => `<span class="cond prep">⏳ ${t}</span>`).join('');
-    // FIX v6.8 — badges explícitos de volumen MTF también en tarjetas PREPARING,
-    // con el umbral laxo (0.5x/0.8x) para que se vea claro por qué pasó o no.
     condHTML += `<span class="cond ${(vol4h||0) >= PREP_MIN_VOL_4H ? 'ok' : 'fail'}">${(vol4h||0) >= PREP_MIN_VOL_4H ? '✓' : '✗'} Vol 4H ${(vol4h||0).toFixed(1)}x (mín ${PREP_MIN_VOL_4H}x)</span>`;
     condHTML += `<span class="cond ${(vol1h||0) >= PREP_MIN_VOL_1H ? 'ok' : 'fail'}">${(vol1h||0) >= PREP_MIN_VOL_1H ? '✓' : '✗'} Vol 1H ${(vol1h||0).toFixed(1)}x (mín ${PREP_MIN_VOL_1H}x)</span>`;
   } else {
     const passC = d.conds.filter(c => c.ok).slice(0, 5);
     const failC = d.conds.filter(c => !c.ok).slice(0, 2);
     condHTML = [...passC.map(c => `<span class="cond ok">✓ ${c.label}</span>`), ...failC.map(c => `<span class="cond fail">✗ ${c.label}</span>`), d.squeeze ? '<span class="cond prep">⚡ SQUEEZE</span>' : ''].join('');
-    // FIX v6.7 — mostrar explícitamente el resultado del gate de volumen MTF
     condHTML += `<span class="cond ${(vol4h||0) >= MTF_MIN_VOL ? 'ok' : 'fail'}">${(vol4h||0) >= MTF_MIN_VOL ? '✓' : '✗'} Vol 4H ${(vol4h||0).toFixed(1)}x</span>`;
     condHTML += `<span class="cond ${(vol1h||0) >= MTF_MIN_VOL ? 'ok' : 'fail'}">${(vol1h||0) >= MTF_MIN_VOL ? '✓' : '✗'} Vol 1H ${(vol1h||0).toFixed(1)}x</span>`;
   }
 
-  // Pullback
   let pbHTML = '';
   if (d.signal.startsWith('trend')) {
     const pbColor = d.pbPct < 0.5 ? '#00ff88' : d.pbPct < 1.5 ? '#fbbf24' : '#ff3366';
@@ -1154,7 +1134,6 @@ function renderCard(symbol, d, htf, htf4h, delay, vol1h, vol4h) {
     pbHTML = `<div class="pullback-row"><span class="pb-label">DIST EMA9</span><div class="pb-track"><div class="pb-fill" style="width:${pbPct2}%;background:${pbColor}"></div></div><span class="pb-val" style="color:${pbColor}">${d.pbPct.toFixed(2)}%</span></div><div style="font-size:8px;text-align:center;margin-bottom:6px;">${pbMsg}</div>`;
   }
 
-  // Riesgo
   let riskHTML = '';
   if (d.signal !== 'neutral') {
     const dir = d.signal.includes('long') ? 'long' : 'short';
@@ -1246,9 +1225,6 @@ async function fetchHTF(symbol) {
   const c4h = r4h.ok ? await r4h.json() : [];
   const htf1h = c1h.length ? trendGeneric(c1h) : 'neutral';
   const htf4h = c4h.length ? trendGeneric(c4h) : 'neutral';
-  // FIX v6.7 — calcular también el volumen relativo de 1H y 4H, no solo la tendencia.
-  // Esto es lo que faltaba: antes solo se comprobaba dirección (bull/bear) en estos
-  // timeframes, nunca su volumen, así que el volumen de 15M "tapaba" el fallo real.
   const vol1h = c1h.length >= 21 ? volSpikeCalc(c1h).ratio : 0;
   const vol4h = c4h.length >= 21 ? volSpikeCalc(c4h).ratio : 0;
   const result = { htf1h, htf4h, vol1h, vol4h, ts: now };
@@ -1276,21 +1252,15 @@ async function scanAll() {
       const closes = c15.map(c => parseFloat(c[4]));
       const { htf1h, htf4h, vol1h, vol4h } = htfData;
 
-      // Primero intentar señal confirmada
       let d = evalPair(closes, c15);
       if (!d) throw new Error();
 
-      // Si no hay señal confirmada con 4H alineado, intentar earlyWarning
       const hasConfirmed4H = d.signal !== 'neutral' && htf4h === (d.signal.includes('long') ? 'bull' : 'bear');
 
       if (!hasConfirmed4H) {
-        // FIX v6.8 — se pasan vol1h/vol4h para que earlyWarning aplique el
-        // gate de volumen MTF (antes solo recibía closes/candles/htf1h/htf4h
-        // y nunca podía ver el volumen de las velas altas).
         const ew = earlyWarning(closes, c15, htf1h, htf4h, vol1h, vol4h);
         if (ew) d = ew;
         else if (d.signal !== 'neutral' && !hasConfirmed4H) {
-          // Señal existe pero 4H no alineado → descartamos (solo mostramos si piden 'all')
           d = { ...d, signal: 'neutral' };
         }
       }
@@ -1302,7 +1272,6 @@ async function scanAll() {
     await new Promise(r => setTimeout(r, 80));
   }
 
-  // Ordenar: ELITE > SUPER > PREPARING > CONFIRMED > resto
   results.sort((a, b) => {
     const rank = r => isEliteSignal(r) ? 0 : isSuperSignal(r) ? 1 : isPreparing(r) && has4HAlignment(r) ? 2 : isConfirmed(r) ? 3 : 4;
     const ra = rank(a), rb = rank(b);
@@ -1314,7 +1283,7 @@ async function scanAll() {
   renderGrid();
   updateStats();
   checkAndNotify(results);
-  addToHistory(results); // Añadir al historial
+  addToHistory(results);
 
   const now = new Date();
   document.getElementById('tsLeft').innerHTML = `<span class="live-dot"></span>ACTUALIZADO ${now.toLocaleTimeString('es-ES')}`;
@@ -1332,7 +1301,6 @@ function renderGrid() {
   else if (currentFilter === 'preparing') f = allCards.filter(r => isPreparing(r) && has4HAlignment(r));
   else if (currentFilter === 'confirmed') f = allCards.filter(r => isConfirmed(r));
   else if (currentFilter === 'signals')   f = allCards.filter(r => r.d.signal !== 'neutral');
-  // 'all' muestra todo incluyendo neutrales sin 4H
   if (f.length === 0) {
     grid.innerHTML = '<div class="empty">Sin señales para este filtro · Intenta con ⏳ PREPARING o 🎯 SEÑALES</div>';
     return;
@@ -1386,7 +1354,7 @@ function toggleAuto() {
     autoInterval = setInterval(() => {
       scanAll();
       countdownSecs = 900;
-    }, 900000); // 15 min
+    }, 900000);
     autoCountdownInterval = setInterval(() => {
       countdownSecs--;
       if (countdownSecs < 0) countdownSecs = 900;
