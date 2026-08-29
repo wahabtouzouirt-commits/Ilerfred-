@@ -249,6 +249,7 @@
     <div class="stat"><div class="stat-val" id="sElite" style="color:var(--elite)">0</div><div class="stat-lbl">ELITE</div></div>
     <div class="stat"><div class="stat-val" id="sSuper" style="color:#ffaa44">0</div><div class="stat-lbl">SUPER</div></div>
     <div class="stat"><div class="stat-val" id="sPrep" style="color:var(--preparing)">0</div><div class="stat-lbl">PREP</div></div>
+    <div class="stat"><div class="stat-val" id="sFresh" style="color:#4ade80">0</div><div class="stat-lbl">FRESCO</div></div>
     <div class="stat"><div class="stat-val" id="sTotal" style="color:var(--accent)">0</div><div class="stat-lbl">TOTAL</div></div>
   </div>
 </div>
@@ -259,6 +260,7 @@
   <button class="fbtn elite active" onclick="setFilter('elite',this)">👑 ELITE</button>
   <button class="fbtn prep" onclick="setFilter('preparing',this)">⏳ PREPARING</button>
   <button class="fbtn super" onclick="setFilter('super',this)">⭐ SUPER</button>
+  <button class="fbtn" onclick="setFilter('fresh',this)" style="border-color:#4ade80;color:#4ade80;">🌱 FRESCO</button>
   <button class="fbtn" onclick="setFilter('confirmed',this)">✅ 1H CONF</button>
   <button class="fbtn" onclick="setFilter('signals',this)">🎯 SEÑALES</button>
   <button class="fbtn" onclick="setFilter('all',this)">TODOS</button>
@@ -447,6 +449,84 @@ function trendGeneric(candles) {
   if (!e21 || !e50 || r === null) return 'neutral';
   const bull = (p > e21 ? 1 : 0) + (e21 > e50 ? 1 : 0) + (r > 50 ? 1 : 0) + (vw && p > vw ? 1 : 0);
   return bull >= 3 ? 'bull' : bull <= 1 ? 'bear' : 'neutral';
+}
+
+// ============================================================
+// FRESCO — 3 filtros independientes (no correlacionados entre sí)
+// A diferencia de RSI/StochK/EMA (todos derivados del mismo precio de
+// cierre y por tanto redundantes entre sí), FRESCO usa 3 fuentes de
+// evidencia distintas:
+//   1) Sesgo estructural — swings de máximos/mínimos en 4H (no medias)
+//   2) Disparador — reacción de precio (rechazo) en un nivel real del 1H
+//   3) Participación — volumen real (no derivado del precio)
+// Esto es intencionadamente independiente del sistema ELITE/SUPER/
+// PREPARING existente: es un filtro adicional, no un reemplazo.
+// ============================================================
+function findSwings(candles, leftRight = 2) {
+  const highs = [], lows = [];
+  for (let i = leftRight; i < candles.length - leftRight; i++) {
+    const h = parseFloat(candles[i][2]), l = parseFloat(candles[i][3]);
+    let isHigh = true, isLow = true;
+    for (let j = i - leftRight; j <= i + leftRight; j++) {
+      if (j === i) continue;
+      if (parseFloat(candles[j][2]) >= h) isHigh = false;
+      if (parseFloat(candles[j][3]) <= l) isLow = false;
+    }
+    if (isHigh) highs.push({ idx: i, price: h });
+    if (isLow) lows.push({ idx: i, price: l });
+  }
+  return { highs, lows };
+}
+function structuralBias(candles) {
+  const { highs, lows } = findSwings(candles, 2);
+  if (highs.length < 2 || lows.length < 2) return 'neutral';
+  const lastH = highs[highs.length - 1], prevH = highs[highs.length - 2];
+  const lastL = lows[lows.length - 1], prevL = lows[lows.length - 2];
+  if (lastH.price > prevH.price && lastL.price > prevL.price) return 'bull';
+  if (lastH.price < prevH.price && lastL.price < prevL.price) return 'bear';
+  return 'neutral';
+}
+function nearestLevels(candles, currentPrice, maxDistPct = 3) {
+  const { highs, lows } = findSwings(candles, 2);
+  const above = highs.filter(h => h.price > currentPrice).sort((a, b) => a.price - b.price);
+  const below = lows.filter(l => l.price < currentPrice).sort((a, b) => b.price - a.price);
+  const resistance = above.length ? above[0] : null;
+  const support = below.length ? below[0] : null;
+  const resOk = resistance && ((resistance.price - currentPrice) / currentPrice * 100) <= maxDistPct;
+  const supOk = support && ((currentPrice - support.price) / currentPrice * 100) <= maxDistPct;
+  return { resistance: resOk ? resistance : null, support: supOk ? support : null };
+}
+function detectRejection(candles, level, dir, lookback = 3) {
+  const n = candles.length;
+  for (let i = n - 1; i >= Math.max(0, n - lookback); i--) {
+    const c = candles[i];
+    const o = parseFloat(c[1]), h = parseFloat(c[2]), l = parseFloat(c[3]), cl = parseFloat(c[4]);
+    const range = h - l; if (range <= 0) continue;
+    if (dir === 'short') {
+      const touched = h >= level.price * 0.999;
+      const rejected = cl < level.price && (h - cl) / range > 0.4 && cl < o;
+      if (touched && rejected) return true;
+    } else {
+      const touched = l <= level.price * 1.001;
+      const rejected = cl > level.price && (cl - l) / range > 0.4 && cl > o;
+      if (touched && rejected) return true;
+    }
+  }
+  return false;
+}
+function freshSignal(closes, candles, struct4h, levels1h, vol1h, vol4h) {
+  const price = closes[closes.length - 1];
+  const vol = volSpikeCalc(candles);
+  const volOk = vol.ratio >= 1.0 && vol1h >= MTF_MIN_VOL && vol4h >= MTF_MIN_VOL;
+  if (!volOk) return null;
+  if (struct4h === 'neutral') return null;
+  if (struct4h === 'bear' && levels1h.resistance && detectRejection(candles, levels1h.resistance, 'short')) {
+    return { signal: 'fresh_short', level: levels1h.resistance.price, price, vol: vol.ratio };
+  }
+  if (struct4h === 'bull' && levels1h.support && detectRejection(candles, levels1h.support, 'long')) {
+    return { signal: 'fresh_long', level: levels1h.support.price, price, vol: vol.ratio };
+  }
+  return null;
 }
 
 // ============================================================
@@ -689,6 +769,11 @@ function isEliteSignal(card) {
   if (slPct > 2.5) return false;
   if (card.d.squeeze) return false;
   return true;
+}
+
+// FRESCO — filtro independiente basado en estructura + reacción a nivel + volumen real
+function isFresh(card) {
+  return !!card.fresh;
 }
 
 // 4H obligatorio para señales confirmadas (no preparing)
@@ -1069,8 +1154,8 @@ document.addEventListener('keydown', e => {
 // ============================================================
 const cardDataStore = {};
 
-function renderCard(symbol, d, htf, htf4h, delay, vol1h, vol4h, stoch1h, stoch4h) {
-  const cardObj = { symbol, d, htf, htf4h, vol1h, vol4h, stoch1h, stoch4h };
+function renderCard(symbol, d, htf, htf4h, delay, vol1h, vol4h, stoch1h, stoch4h, fresh) {
+  const cardObj = { symbol, d, htf, htf4h, vol1h, vol4h, stoch1h, stoch4h, fresh };
   const isElite = isEliteSignal(cardObj);
   const isPrep  = d.signal === 'preparing_long' || d.signal === 'preparing_short';
   const isConf  = !isPrep && isConfirmed(cardObj);
@@ -1104,7 +1189,10 @@ function renderCard(symbol, d, htf, htf4h, delay, vol1h, vol4h, stoch1h, stoch4h
     ((d.signal.includes('long') && htf === 'bull') || (d.signal.includes('short') && htf === 'bear')) &&
     !volMtfOk;
 
-  if (isElite) {
+  if (fresh) {
+    const dir = fresh.signal === 'fresh_long' ? 'LONG' : 'SHORT';
+    banner = `<div class="banner" style="background:rgba(74,222,128,0.15);border-color:#4ade80;color:#4ade80;font-weight:700;text-align:center;">🌱 FRESCO ${dir} · Rechazo en nivel $${fmt(fresh.level)} · Estructura 4H + Volumen real</div>`;
+  } else if (isElite) {
     banner = `<div class="banner b-elite">👑 ELITE · Score ${d.score}/9 · Vol 15M ${d.vol.ratio.toFixed(1)}x · Vol 1H ${(vol1h||0).toFixed(1)}x · Vol 4H ${(vol4h||0).toFixed(1)}x · 4H+1H+15M PERFECTOS</div>`;
   } else if (isPrep) {
     const dir = d.signal === 'preparing_long' ? 'LONG' : 'SHORT';
@@ -1275,7 +1363,10 @@ async function fetchHTF(symbol) {
   const closes4h = c4h.length ? c4h.map(c => parseFloat(c[4])) : [];
   const stoch1h = closes1h.length ? stochRsi(closes1h).k : null;
   const stoch4h = closes4h.length ? stochRsi(closes4h).k : null;
-  const result = { htf1h, htf4h, vol1h, vol4h, stoch1h, stoch4h, ts: now };
+  // FRESCO — sesgo estructural de 4H (swings), guarda velas 1H para
+  // calcular niveles de soporte/resistencia relativos al precio actual.
+  const struct4h = c4h.length >= 10 ? structuralBias(c4h) : 'neutral';
+  const result = { htf1h, htf4h, vol1h, vol4h, stoch1h, stoch4h, struct4h, c1hCandles: c1h, ts: now };
   htfCache[symbol] = result;
   return result;
 }
@@ -1298,7 +1389,7 @@ async function scanAll() {
       if (!r15.ok) throw new Error();
       const c15 = await r15.json();
       const closes = c15.map(c => parseFloat(c[4]));
-      const { htf1h, htf4h, vol1h, vol4h, stoch1h, stoch4h } = htfData;
+      const { htf1h, htf4h, vol1h, vol4h, stoch1h, stoch4h, struct4h, c1hCandles } = htfData;
 
       let d = evalPair(closes, c15);
       if (!d) throw new Error();
@@ -1313,7 +1404,11 @@ async function scanAll() {
         }
       }
 
-      results.push({ symbol: sym, d, htf: htf1h, htf4h, vol1h, vol4h, stoch1h, stoch4h });
+      // FRESCO — sistema paralelo, no sustituye al scoring 9/9 existente.
+      const levels1h = c1hCandles && c1hCandles.length ? nearestLevels(c1hCandles, closes[closes.length - 1]) : { resistance: null, support: null };
+      const fresh = freshSignal(closes, c15, struct4h, levels1h, vol1h, vol4h);
+
+      results.push({ symbol: sym, d, htf: htf1h, htf4h, vol1h, vol4h, stoch1h, stoch4h, struct4h, fresh });
     } catch(e) { /* ignorar */ }
 
     document.getElementById('prog').style.width = `${((i + 1) / PAIRS.length) * 100}%`;
@@ -1347,19 +1442,21 @@ function renderGrid() {
   if (currentFilter === 'elite')     f = allCards.filter(r => isEliteSignal(r));
   else if (currentFilter === 'super')f = allCards.filter(r => isSuperSignal(r));
   else if (currentFilter === 'preparing') f = allCards.filter(r => isPreparing(r) && has4HAlignment(r));
+  else if (currentFilter === 'fresh') f = allCards.filter(r => isFresh(r));
   else if (currentFilter === 'confirmed') f = allCards.filter(r => isConfirmed(r));
   else if (currentFilter === 'signals')   f = allCards.filter(r => r.d.signal !== 'neutral');
   if (f.length === 0) {
     grid.innerHTML = '<div class="empty">Sin señales para este filtro · Intenta con ⏳ PREPARING o 🎯 SEÑALES</div>';
     return;
   }
-  grid.innerHTML = f.map((r, i) => renderCard(r.symbol, r.d, r.htf, r.htf4h, i * 30, r.vol1h, r.vol4h, r.stoch1h, r.stoch4h)).join('');
+  grid.innerHTML = f.map((r, i) => renderCard(r.symbol, r.d, r.htf, r.htf4h, i * 30, r.vol1h, r.vol4h, r.stoch1h, r.stoch4h, r.fresh)).join('');
 }
 
 function updateStats() {
   document.getElementById('sElite').textContent = allCards.filter(c => isEliteSignal(c)).length;
   document.getElementById('sSuper').textContent = allCards.filter(c => isSuperSignal(c)).length;
   document.getElementById('sPrep').textContent  = allCards.filter(c => isPreparing(c) && has4HAlignment(c)).length;
+  document.getElementById('sFresh').textContent = allCards.filter(c => isFresh(c)).length;
   document.getElementById('sTotal').textContent = allCards.length;
 }
 
