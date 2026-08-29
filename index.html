@@ -699,6 +699,32 @@ function has4HAlignment(card) {
 }
 
 // ============================================================
+// FIX G — extensión real de 1H/4H (nuevo)
+// El badge "✅ 4H+1H+15M ALINEADOS · Setup ideal" solo comprobaba
+// DIRECCIÓN (bull/bear) de 1H/4H, no si esos timeframes ya estaban
+// agotados (StochK/RSI en extremo, volumen 4H débil). Por eso una
+// tarjeta podía marcar "Setup ideal" con 1H/4H ya sobre-extendidos,
+// justo lo que evalCurrentState() revela luego al abrir el modal.
+// Esta función usa los mismos datos ya cacheados en fetchHTF()
+// (stoch1h/stoch4h) sin llamadas de red adicionales.
+// ============================================================
+function htfExtended(card) {
+  const isLong = card.d.signal.includes('long');
+  const s1 = card.stoch1h, s4 = card.stoch4h;
+  const v4 = typeof card.vol4h === 'number' ? card.vol4h : 0;
+  // Igual que evalCurrentState pero aplicado a 1H/4H, no solo al TF de la tarjeta.
+  if (isLong) {
+    if (s1 !== null && s1 !== undefined && s1 > 75) return true;
+    if (s4 !== null && s4 !== undefined && s4 > 75) return true;
+  } else {
+    if (s1 !== null && s1 !== undefined && s1 < 25) return true;
+    if (s4 !== null && s4 !== undefined && s4 < 25) return true;
+  }
+  if (v4 < MTF_MIN_VOL) return true; // 4H sin volumen real de continuación
+  return false;
+}
+
+// ============================================================
 // SONIDO Y NOTIFICACIONES
 // ============================================================
 function playBeep(type = 'normal') {
@@ -901,6 +927,8 @@ function calcRisk(price, dir, bb, at) {
 
 // ============================================================
 // MODAL — evaluar estado actual
+// FIX G — umbral de volumen alineado con MTF_MIN_VOL (modo agresivo,
+// antes hardcodeado a 1.0x, inconsistente con el resto del sistema).
 // ============================================================
 function evalCurrentState(d, htf1h, htf4h, isLong) {
   const { rsi, stochK, pbPct: pb, vol: volObj, price, ema9, ema21, ema50 } = d;
@@ -912,7 +940,7 @@ function evalCurrentState(d, htf1h, htf4h, isLong) {
     const c3 = pb < 1.5; checks.push({ label: 'Dist EMA9 < 1.5%', ok: c3 }); if (!c3) problems++;
     const c4 = price >= ema9; checks.push({ label: 'Precio > EMA9', ok: c4 }); if (!c4) problems++;
     const c5 = ema21 > ema50; checks.push({ label: 'EMA21 > EMA50', ok: c5 }); if (!c5) problems++;
-    const c6 = vol >= 1.0; checks.push({ label: 'Vol ≥ 1.0x', ok: c6 }); if (!c6) problems++;
+    const c6 = vol >= MTF_MIN_VOL; checks.push({ label: `Vol ≥ ${MTF_MIN_VOL}x`, ok: c6 }); if (!c6) problems++;
     const c7 = htf1h === 'bull'; checks.push({ label: '1H alcista', ok: c7 }); if (!c7) problems++;
     const c8 = htf4h === 'bull'; checks.push({ label: '4H alcista ✦', ok: c8 }); if (!c8) problems++;
   } else {
@@ -921,7 +949,7 @@ function evalCurrentState(d, htf1h, htf4h, isLong) {
     const c3 = pb < 1.5; checks.push({ label: 'Dist EMA9 < 1.5%', ok: c3 }); if (!c3) problems++;
     const c4 = price <= ema9; checks.push({ label: 'Precio < EMA9', ok: c4 }); if (!c4) problems++;
     const c5 = ema21 < ema50; checks.push({ label: 'EMA21 < EMA50', ok: c5 }); if (!c5) problems++;
-    const c6 = vol >= 1.0; checks.push({ label: 'Vol ≥ 1.0x', ok: c6 }); if (!c6) problems++;
+    const c6 = vol >= MTF_MIN_VOL; checks.push({ label: `Vol ≥ ${MTF_MIN_VOL}x`, ok: c6 }); if (!c6) problems++;
     const c7 = htf1h === 'bear'; checks.push({ label: '1H bajista', ok: c7 }); if (!c7) problems++;
     const c8 = htf4h === 'bear'; checks.push({ label: '4H bajista ✦', ok: c8 }); if (!c8) problems++;
   }
@@ -993,7 +1021,7 @@ async function _updateStatusPanel(symbol, cardData, tf) {
     const rsiColor   = (isLong && (state.rsi > 70 || state.rsi < 40)) ? 'bad' : (!isLong && (state.rsi < 30 || state.rsi > 60)) ? 'bad' : 'good';
     const stochColor = state.stochK !== null ? ((isLong && state.stochK > 75) || (!isLong && state.stochK < 25) ? 'bad' : 'good') : 'warn';
     const pbColor    = state.pb > 1.5 ? 'bad' : state.pb > 0.8 ? 'warn' : 'good';
-    const volColor   = state.vol < 1.0 ? 'bad' : state.vol >= 2.0 ? 'good' : 'warn';
+    const volColor   = state.vol < MTF_MIN_VOL ? 'bad' : state.vol >= 2.0 ? 'good' : 'warn';
     const htfOk      = isLong ? (htf1h === 'bull' && htf4h === 'bull') : (htf1h === 'bear' && htf4h === 'bear');
     const htfPartial = isLong ? (htf1h === 'bull' || htf4h === 'bull') : (htf1h === 'bear' || htf4h === 'bear');
     const htfStatus  = htfOk ? '🟢 4H+1H OK' : htfPartial ? '🟡 Parcial' : '🔴 En contra';
@@ -1041,13 +1069,18 @@ document.addEventListener('keydown', e => {
 // ============================================================
 const cardDataStore = {};
 
-function renderCard(symbol, d, htf, htf4h, delay, vol1h, vol4h) {
-  const cardObj = { symbol, d, htf, htf4h, vol1h, vol4h };
+function renderCard(symbol, d, htf, htf4h, delay, vol1h, vol4h, stoch1h, stoch4h) {
+  const cardObj = { symbol, d, htf, htf4h, vol1h, vol4h, stoch1h, stoch4h };
   const isElite = isEliteSignal(cardObj);
   const isPrep  = d.signal === 'preparing_long' || d.signal === 'preparing_short';
   const isConf  = !isPrep && isConfirmed(cardObj);
   const aligned4h = htf4h === (d.signal.includes('long') ? 'bull' : 'bear');
   const tripleAligned = isConf && aligned4h;
+  // FIX G — el badge "Setup ideal" ahora exige además que 1H/4H no estén
+  // ya extendidos (StochK/RSI en extremo, vol 4H débil). Antes solo
+  // miraba dirección (bull/bear), por eso podía marcar "ideal" con el
+  // movimiento ya agotado en timeframes superiores.
+  const extended = tripleAligned && htfExtended(cardObj);
   const volMtfOk = mtfVolumeOk(cardObj);
   const prepVolOk = isPrep ? prepVolumeOk(cardObj) : true;
 
@@ -1079,6 +1112,9 @@ function renderCard(symbol, d, htf, htf4h, delay, vol1h, vol4h) {
   } else if (alignedButVolFails) {
     const dir = d.signal === 'trend_long' || d.signal === 'early_long' ? 'ALCISTA' : 'BAJISTA';
     banner = `<div class="banner b-volwarn">⚠ 4H+1H ALINEADOS PERO VOL BAJO · Vol 1H ${(vol1h||0).toFixed(1)}x / Vol 4H ${(vol4h||0).toFixed(1)}x (mín ${MTF_MIN_VOL}x) · No es ELITE ni SUPER</div>`;
+  } else if (tripleAligned && extended) {
+    // FIX G — nuevo estado: dirección alineada pero 1H/4H ya extendidos
+    banner = `<div class="banner b-volwarn">⚠ 4H+1H ALINEADOS EN DIRECCIÓN, PERO YA EXTENDIDOS (StochK/Vol4H débil) · Posible entrada tardía · Revisa 1H/4H antes de entrar</div>`;
   } else if (tripleAligned) {
     banner = `<div class="banner b-elite" style="background:rgba(34,211,238,0.15);border-color:#22d3ee;color:#22d3ee;">✅ 4H+1H+15M ALINEADOS · Setup ideal</div>`;
   } else if (d.signal !== 'neutral' && isConf && d.score >= 8 && d.vol.ratio >= 2) {
@@ -1124,6 +1160,9 @@ function renderCard(symbol, d, htf, htf4h, delay, vol1h, vol4h) {
     condHTML = [...passC.map(c => `<span class="cond ok">✓ ${c.label}</span>`), ...failC.map(c => `<span class="cond fail">✗ ${c.label}</span>`), d.squeeze ? '<span class="cond prep">⚡ SQUEEZE</span>' : ''].join('');
     condHTML += `<span class="cond ${(vol4h||0) >= MTF_MIN_VOL ? 'ok' : 'fail'}">${(vol4h||0) >= MTF_MIN_VOL ? '✓' : '✗'} Vol 4H ${(vol4h||0).toFixed(1)}x</span>`;
     condHTML += `<span class="cond ${(vol1h||0) >= MTF_MIN_VOL ? 'ok' : 'fail'}">${(vol1h||0) >= MTF_MIN_VOL ? '✓' : '✗'} Vol 1H ${(vol1h||0).toFixed(1)}x</span>`;
+    // FIX G — mostrar StochK real de 1H/4H en las condiciones de la tarjeta
+    if (typeof stoch1h === 'number') condHTML += `<span class="cond ${extended ? 'fail' : 'ok'}">StochK 1H ${stoch1h.toFixed(1)}</span>`;
+    if (typeof stoch4h === 'number') condHTML += `<span class="cond ${extended ? 'fail' : 'ok'}">StochK 4H ${stoch4h.toFixed(1)}</span>`;
   }
 
   let pbHTML = '';
@@ -1153,7 +1192,7 @@ function renderCard(symbol, d, htf, htf4h, delay, vol1h, vol4h) {
   }
 
   const eliteClass = isElite ? 'elite-card' : isPrep ? 'prep-card' : '';
-  cardDataStore[symbol] = { d, htf, htf4h, vol1h, vol4h };
+  cardDataStore[symbol] = { d, htf, htf4h, vol1h, vol4h, stoch1h, stoch4h };
 
   return `<div class="card ${d.signal} ${eliteClass}" style="animation-delay:${delay}ms" onclick="openChartFromStore('${symbol}')">
     <div class="card-top">
@@ -1163,7 +1202,8 @@ function renderCard(symbol, d, htf, htf4h, delay, vol1h, vol4h) {
           ${vwapBadge}
           <span class="htf-b ${htf4hClass}">${htf4hLabel}</span>
           <span class="htf-b ${htfClass}">${htfLabel}</span>
-          ${tripleAligned ? '<span class="htf-b htf-aligned">✅ 4H+1H+15M</span>' : ''}
+          ${tripleAligned && !extended ? '<span class="htf-b htf-aligned">✅ 4H+1H+15M</span>' : ''}
+          ${tripleAligned && extended ? '<span class="htf-b" style="background:rgba(251,191,36,0.15);color:#fbbf24;border:1px solid rgba(251,191,36,0.4);">⚠ EXTENDIDO</span>' : ''}
           ${d.squeeze ? '<span style="font-size:8px;">⚡SQZ</span>' : ''}
         </div>
       </div>
@@ -1211,6 +1251,9 @@ function openChartFromStore(symbol) {
 
 // ============================================================
 // ESCANEO — con caché 4H/1H (trend + volumen) y earlyWarning
+// FIX G — fetchHTF ahora también calcula y cachea el StochK de 1H
+// y 4H (a partir de las mismas velas ya descargadas), para poder
+// detectar si esos timeframes están extendidos sin llamadas extra.
 // ============================================================
 async function fetchHTF(symbol) {
   const now = Date.now();
@@ -1227,7 +1270,12 @@ async function fetchHTF(symbol) {
   const htf4h = c4h.length ? trendGeneric(c4h) : 'neutral';
   const vol1h = c1h.length >= 21 ? volSpikeCalc(c1h).ratio : 0;
   const vol4h = c4h.length >= 21 ? volSpikeCalc(c4h).ratio : 0;
-  const result = { htf1h, htf4h, vol1h, vol4h, ts: now };
+  // FIX G — StochK de 1H/4H, reutilizando las mismas velas ya descargadas.
+  const closes1h = c1h.length ? c1h.map(c => parseFloat(c[4])) : [];
+  const closes4h = c4h.length ? c4h.map(c => parseFloat(c[4])) : [];
+  const stoch1h = closes1h.length ? stochRsi(closes1h).k : null;
+  const stoch4h = closes4h.length ? stochRsi(closes4h).k : null;
+  const result = { htf1h, htf4h, vol1h, vol4h, stoch1h, stoch4h, ts: now };
   htfCache[symbol] = result;
   return result;
 }
@@ -1250,7 +1298,7 @@ async function scanAll() {
       if (!r15.ok) throw new Error();
       const c15 = await r15.json();
       const closes = c15.map(c => parseFloat(c[4]));
-      const { htf1h, htf4h, vol1h, vol4h } = htfData;
+      const { htf1h, htf4h, vol1h, vol4h, stoch1h, stoch4h } = htfData;
 
       let d = evalPair(closes, c15);
       if (!d) throw new Error();
@@ -1265,7 +1313,7 @@ async function scanAll() {
         }
       }
 
-      results.push({ symbol: sym, d, htf: htf1h, htf4h, vol1h, vol4h });
+      results.push({ symbol: sym, d, htf: htf1h, htf4h, vol1h, vol4h, stoch1h, stoch4h });
     } catch(e) { /* ignorar */ }
 
     document.getElementById('prog').style.width = `${((i + 1) / PAIRS.length) * 100}%`;
@@ -1305,7 +1353,7 @@ function renderGrid() {
     grid.innerHTML = '<div class="empty">Sin señales para este filtro · Intenta con ⏳ PREPARING o 🎯 SEÑALES</div>';
     return;
   }
-  grid.innerHTML = f.map((r, i) => renderCard(r.symbol, r.d, r.htf, r.htf4h, i * 30, r.vol1h, r.vol4h)).join('');
+  grid.innerHTML = f.map((r, i) => renderCard(r.symbol, r.d, r.htf, r.htf4h, i * 30, r.vol1h, r.vol4h, r.stoch1h, r.stoch4h)).join('');
 }
 
 function updateStats() {
