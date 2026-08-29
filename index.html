@@ -250,6 +250,7 @@
     <div class="stat"><div class="stat-val" id="sSuper" style="color:#ffaa44">0</div><div class="stat-lbl">SUPER</div></div>
     <div class="stat"><div class="stat-val" id="sPrep" style="color:var(--preparing)">0</div><div class="stat-lbl">PREP</div></div>
     <div class="stat"><div class="stat-val" id="sFresh" style="color:#4ade80">0</div><div class="stat-lbl">FRESCO</div></div>
+    <div class="stat"><div class="stat-val" id="s2L" style="color:#38bdf8">0</div><div class="stat-lbl">2 CAPAS</div></div>
     <div class="stat"><div class="stat-val" id="sTotal" style="color:var(--accent)">0</div><div class="stat-lbl">TOTAL</div></div>
   </div>
 </div>
@@ -261,6 +262,7 @@
   <button class="fbtn prep" onclick="setFilter('preparing',this)">⏳ PREPARING</button>
   <button class="fbtn super" onclick="setFilter('super',this)">⭐ SUPER</button>
   <button class="fbtn" onclick="setFilter('fresh',this)" style="border-color:#4ade80;color:#4ade80;">🌱 FRESCO</button>
+  <button class="fbtn" onclick="setFilter('twolayer',this)" style="border-color:#38bdf8;color:#38bdf8;">🎯 2 CAPAS</button>
   <button class="fbtn" onclick="setFilter('confirmed',this)">✅ 1H CONF</button>
   <button class="fbtn" onclick="setFilter('signals',this)">🎯 SEÑALES</button>
   <button class="fbtn" onclick="setFilter('all',this)">TODOS</button>
@@ -776,6 +778,23 @@ function isFresh(card) {
   return !!card.fresh;
 }
 
+// ============================================================
+// 2 CAPAS — enfoque de traders reales: 1 timeframe para DIRECCIÓN
+// (4H, solo importa si es alcista/bajista, no si está "sano" o
+// extendido) + 1 timeframe para CALIDAD/ENTRADA (15M, aquí se
+// concentran todos los filtros: RSI, StochK, volumen, estructura).
+// El 1H deja de ser una puerta de bloqueo obligatoria.
+// ============================================================
+function isTwoLayer(card) {
+  if (card.d.signal === 'neutral') return false;
+  if (!isConfirmedSignalType(card.d.signal)) return false;
+  const dirLong = card.d.signal.includes('long');
+  const dir4hOk = dirLong ? card.htf4h === 'bull' : card.htf4h === 'bear';
+  if (!dir4hOk) return false; // única exigencia del 4H: dirección
+  if (card.d.score < 6) return false; // toda la calidad se exige en 15M
+  return true;
+}
+
 // 4H obligatorio para señales confirmadas (no preparing)
 function has4HAlignment(card) {
   if (isPreparing(card)) return card.htf4h === (card.d.signal === 'preparing_long' ? 'bull' : 'bear');
@@ -1192,6 +1211,8 @@ function renderCard(symbol, d, htf, htf4h, delay, vol1h, vol4h, stoch1h, stoch4h
   if (fresh) {
     const dir = fresh.signal === 'fresh_long' ? 'LONG' : 'SHORT';
     banner = `<div class="banner" style="background:rgba(74,222,128,0.15);border-color:#4ade80;color:#4ade80;font-weight:700;text-align:center;">🌱 FRESCO ${dir} · Rechazo en nivel $${fmt(fresh.level)} · Estructura 4H + Volumen real</div>`;
+  } else if (isTwoL) {
+    banner = `<div class="banner" style="background:rgba(56,189,248,0.15);border-color:#38bdf8;color:#38bdf8;font-weight:700;text-align:center;">🎯 2 CAPAS · 4H solo dirección (sin exigir salud) · 15M calidad ${d.score}/9</div>`;
   } else if (isElite) {
     banner = `<div class="banner b-elite">👑 ELITE · Score ${d.score}/9 · Vol 15M ${d.vol.ratio.toFixed(1)}x · Vol 1H ${(vol1h||0).toFixed(1)}x · Vol 4H ${(vol4h||0).toFixed(1)}x · 4H+1H+15M PERFECTOS</div>`;
   } else if (isPrep) {
@@ -1224,6 +1245,7 @@ function renderCard(symbol, d, htf, htf4h, delay, vol1h, vol4h, stoch1h, stoch4h
   const htf4hLabel = htf4h === 'bull' ? '4H▲' : htf4h === 'bear' ? '4H▼' : '4H–';
   const htf4hClass = htf4h === 'bull' ? 'htf-bull' : htf4h === 'bear' ? 'htf-bear' : 'htf-neu';
   const tripleClass = tripleAligned ? 'htf-aligned' : '';
+  const isTwoL = isTwoLayer(cardObj);
 
   const rsiC = d.rsi > 70 ? '#fbbf24' : d.rsi < 30 ? '#38bdf8' : col;
   const skC  = d.stochK !== null ? (d.stochK > 80 ? '#fbbf24' : d.stochK < 20 ? '#38bdf8' : '#e2e8f0') : '#64748b';
@@ -1443,6 +1465,7 @@ function renderGrid() {
   else if (currentFilter === 'super')f = allCards.filter(r => isSuperSignal(r));
   else if (currentFilter === 'preparing') f = allCards.filter(r => isPreparing(r) && has4HAlignment(r));
   else if (currentFilter === 'fresh') f = allCards.filter(r => isFresh(r));
+  else if (currentFilter === 'twolayer') f = allCards.filter(r => isTwoLayer(r));
   else if (currentFilter === 'confirmed') f = allCards.filter(r => isConfirmed(r));
   else if (currentFilter === 'signals')   f = allCards.filter(r => r.d.signal !== 'neutral');
   if (f.length === 0) {
@@ -1457,6 +1480,7 @@ function updateStats() {
   document.getElementById('sSuper').textContent = allCards.filter(c => isSuperSignal(c)).length;
   document.getElementById('sPrep').textContent  = allCards.filter(c => isPreparing(c) && has4HAlignment(c)).length;
   document.getElementById('sFresh').textContent = allCards.filter(c => isFresh(c)).length;
+  document.getElementById('s2L').textContent = allCards.filter(c => isTwoLayer(c)).length;
   document.getElementById('sTotal').textContent = allCards.length;
 }
 
