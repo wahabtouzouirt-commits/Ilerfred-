@@ -900,7 +900,12 @@ function addToHistory(results) {
     if (!has4HAlignment(r)) return;
 
     let tipo = '';
-    if (isEliteSignal(r)) tipo = 'ELITE';
+    // FIX J — mismo orden de prioridad que el banner de la tarjeta
+    // (fresh > 2 capas > elite > super > preparing > conf), para que
+    // el historial no contradiga lo que la tarjeta muestra.
+    if (isFresh(r)) tipo = 'FRESCO';
+    else if (isTwoLayer(r)) tipo = '2 CAPAS';
+    else if (isEliteSignal(r)) tipo = 'ELITE';
     else if (isSuperSignal(r)) tipo = 'SUPER';
     else if (isPreparing(r)) tipo = 'PREPARING';
     else if (isConfirmed(r)) tipo = 'CONF';
@@ -948,6 +953,7 @@ function renderHistory() {
 
   tbody.innerHTML = signalHistory.map(h => {
     const tipoClass = h.tipo === 'ELITE' ? 'h-elite' : h.tipo === 'SUPER' ? 'h-super' : h.tipo === 'PREPARING' ? 'h-prep' : '';
+    const tipoStyle = h.tipo === 'FRESCO' ? 'color:#4ade80;' : h.tipo === '2 CAPAS' ? 'color:#38bdf8;' : '';
     const dirClass  = h.signal.includes('long') ? 'h-long' : 'h-short';
     const dirLabel  = h.signal === 'preparing_long' ? '⏳ PREP LONG'
                     : h.signal === 'preparing_short' ? '⏳ PREP SHORT'
@@ -969,7 +975,7 @@ function renderHistory() {
     return `<tr>
       <td style="color:var(--muted)">${h.time}</td>
       <td style="font-weight:700">${h.symbol.replace('USDT','/USDT')}</td>
-      <td class="${tipoClass}" style="font-weight:700">${h.tipo}</td>
+      <td class="${tipoClass}" style="font-weight:700;${tipoStyle}">${h.tipo}</td>
       <td class="${dirClass}">${dirLabel}</td>
       <td class="h-score" style="color:var(--accent)">${h.score}/9</td>
       <td style="color:${h4Color};font-weight:700">${h4Label} 4H</td>
