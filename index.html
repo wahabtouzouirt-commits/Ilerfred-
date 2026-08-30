@@ -246,26 +246,26 @@
     <button class="alert-btn" id="alertAll" onclick="setAlertMode('all')">TODO</button>
   </div>
   <div class="stats">
-    <div class="stat"><div class="stat-val" id="sElite" style="color:var(--elite)">0</div><div class="stat-lbl">ELITE</div></div>
-    <div class="stat"><div class="stat-val" id="sSuper" style="color:#ffaa44">0</div><div class="stat-lbl">SUPER</div></div>
-    <div class="stat"><div class="stat-val" id="sPrep" style="color:var(--preparing)">0</div><div class="stat-lbl">PREP</div></div>
-    <div class="stat"><div class="stat-val" id="sFresh" style="color:#4ade80">0</div><div class="stat-lbl">FRESCO</div></div>
-    <div class="stat"><div class="stat-val" id="s2L" style="color:#38bdf8">0</div><div class="stat-lbl">2 CAPAS</div></div>
-    <div class="stat"><div class="stat-val" id="sTotal" style="color:var(--accent)">0</div><div class="stat-lbl">TOTAL</div></div>
+    <div class="stat" onclick="selectFilterByName('elite')" style="cursor:pointer;"><div class="stat-val" id="sElite" style="color:var(--elite)">0</div><div class="stat-lbl">ELITE</div></div>
+    <div class="stat" onclick="selectFilterByName('super')" style="cursor:pointer;"><div class="stat-val" id="sSuper" style="color:#ffaa44">0</div><div class="stat-lbl">SUPER</div></div>
+    <div class="stat" onclick="selectFilterByName('preparing')" style="cursor:pointer;"><div class="stat-val" id="sPrep" style="color:var(--preparing)">0</div><div class="stat-lbl">PREP</div></div>
+    <div class="stat" onclick="selectFilterByName('fresh')" style="cursor:pointer;"><div class="stat-val" id="sFresh" style="color:#4ade80">0</div><div class="stat-lbl">FRESCO</div></div>
+    <div class="stat" onclick="selectFilterByName('twolayer')" style="cursor:pointer;"><div class="stat-val" id="s2L" style="color:#38bdf8">0</div><div class="stat-lbl">2 CAPAS</div></div>
+    <div class="stat" onclick="selectFilterByName('all')" style="cursor:pointer;"><div class="stat-val" id="sTotal" style="color:var(--accent)">0</div><div class="stat-lbl">TOTAL</div></div>
   </div>
 </div>
 
 <div class="progress-bar"><div class="progress-fill" id="prog"></div></div>
 
 <div class="filters">
-  <button class="fbtn elite active" onclick="setFilter('elite',this)">👑 ELITE</button>
-  <button class="fbtn prep" onclick="setFilter('preparing',this)">⏳ PREPARING</button>
-  <button class="fbtn super" onclick="setFilter('super',this)">⭐ SUPER</button>
-  <button class="fbtn" onclick="setFilter('fresh',this)" style="border-color:#4ade80;color:#4ade80;">🌱 FRESCO</button>
-  <button class="fbtn" onclick="setFilter('twolayer',this)" style="border-color:#38bdf8;color:#38bdf8;">🎯 2 CAPAS</button>
-  <button class="fbtn" onclick="setFilter('confirmed',this)">✅ 1H CONF</button>
-  <button class="fbtn" onclick="setFilter('signals',this)">🎯 SEÑALES</button>
-  <button class="fbtn" onclick="setFilter('all',this)">TODOS</button>
+  <button class="fbtn elite active" data-filter="elite" onclick="setFilter('elite',this)">👑 ELITE</button>
+  <button class="fbtn prep" data-filter="preparing" onclick="setFilter('preparing',this)">⏳ PREPARING</button>
+  <button class="fbtn super" data-filter="super" onclick="setFilter('super',this)">⭐ SUPER</button>
+  <button class="fbtn" data-filter="fresh" onclick="setFilter('fresh',this)" style="border-color:#4ade80;color:#4ade80;">🌱 FRESCO</button>
+  <button class="fbtn" data-filter="twolayer" onclick="setFilter('twolayer',this)" style="border-color:#38bdf8;color:#38bdf8;">🎯 2 CAPAS</button>
+  <button class="fbtn" data-filter="confirmed" onclick="setFilter('confirmed',this)">✅ 1H CONF</button>
+  <button class="fbtn" data-filter="signals" onclick="setFilter('signals',this)">🎯 SEÑALES</button>
+  <button class="fbtn" data-filter="all" onclick="setFilter('all',this)">TODOS</button>
   <span class="filter-rule">🔒 4H OBLIGATORIO · VOL 4H+1H ≥0.7x (PREP ≥0.3x/0.5x) · AGRESIVO</span>
 </div>
 
@@ -1180,6 +1180,7 @@ function renderCard(symbol, d, htf, htf4h, delay, vol1h, vol4h, stoch1h, stoch4h
   const isConf  = !isPrep && isConfirmed(cardObj);
   const aligned4h = htf4h === (d.signal.includes('long') ? 'bull' : 'bear');
   const tripleAligned = isConf && aligned4h;
+  const isTwoL = isTwoLayer(cardObj);
   // FIX G — el badge "Setup ideal" ahora exige además que 1H/4H no estén
   // ya extendidos (StochK/RSI en extremo, vol 4H débil). Antes solo
   // miraba dirección (bull/bear), por eso podía marcar "ideal" con el
@@ -1245,7 +1246,6 @@ function renderCard(symbol, d, htf, htf4h, delay, vol1h, vol4h, stoch1h, stoch4h
   const htf4hLabel = htf4h === 'bull' ? '4H▲' : htf4h === 'bear' ? '4H▼' : '4H–';
   const htf4hClass = htf4h === 'bull' ? 'htf-bull' : htf4h === 'bear' ? 'htf-bear' : 'htf-neu';
   const tripleClass = tripleAligned ? 'htf-aligned' : '';
-  const isTwoL = isTwoLayer(cardObj);
 
   const rsiC = d.rsi > 70 ? '#fbbf24' : d.rsi < 30 ? '#38bdf8' : col;
   const skC  = d.stochK !== null ? (d.stochK > 80 ? '#fbbf24' : d.stochK < 20 ? '#38bdf8' : '#e2e8f0') : '#64748b';
@@ -1469,7 +1469,7 @@ function renderGrid() {
   else if (currentFilter === 'confirmed') f = allCards.filter(r => isConfirmed(r));
   else if (currentFilter === 'signals')   f = allCards.filter(r => r.d.signal !== 'neutral');
   if (f.length === 0) {
-    grid.innerHTML = '<div class="empty">Sin señales para este filtro · Intenta con ⏳ PREPARING o 🎯 SEÑALES</div>';
+    grid.innerHTML = '<div class="empty">Sin señales para este filtro · Prueba tocando otro número arriba (⏳ PREP, 🌱 FRESCO, 🎯 2 CAPAS) o la pastilla 🎯 SEÑALES</div>';
     return;
   }
   grid.innerHTML = f.map((r, i) => renderCard(r.symbol, r.d, r.htf, r.htf4h, i * 30, r.vol1h, r.vol4h, r.stoch1h, r.stoch4h, r.fresh)).join('');
@@ -1489,6 +1489,15 @@ function setFilter(f, el) {
   document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active'));
   el.classList.add('active');
   if (allCards.length > 0) renderGrid();
+}
+
+// FIX H — permite filtrar tocando los números de arriba (ELITE, SUPER,
+// PREP, FRESCO, 2 CAPAS, TOTAL), no solo las pastillas de abajo. Antes
+// esos contadores eran solo informativos y tocarlos no hacía nada,
+// dando la sensación de que el filtro estaba roto.
+function selectFilterByName(name) {
+  const btn = document.querySelector(`.fbtn[data-filter="${name}"]`);
+  if (btn) setFilter(name, btn);
 }
 
 function setAlertMode(mode) {
