@@ -1126,7 +1126,18 @@ async function _updateStatusPanel(symbol, cardData, tf) {
     ]);
     if (r1h.ok) { const c1h = await r1h.json(); htf1h = trendGeneric(c1h); }
     if (r4h.ok) { const c4h = await r4h.json(); htf4h = trendGeneric(c4h); }
-    const isLong = cardData && cardData.d && cardData.d.signal ? cardData.d.signal.includes('long') : true;
+    // FIX K — cuando d.signal es 'neutral' (ej. señales FRESCO puras),
+    // antes se asumía dirección corta por defecto sin motivo, evaluando
+    // el modal con la dirección equivocada. Ahora usa fresh.signal si
+    // existe antes de caer al fallback.
+    let isLong;
+    if (cardData && cardData.d && cardData.d.signal && cardData.d.signal !== 'neutral') {
+      isLong = cardData.d.signal.includes('long');
+    } else if (cardData && cardData.fresh && cardData.fresh.signal) {
+      isLong = cardData.fresh.signal.includes('long');
+    } else {
+      isLong = true;
+    }
     const state = evalCurrentState(d, htf1h, htf4h, isLong);
     const rsiColor   = (isLong && (state.rsi > 70 || state.rsi < 40)) ? 'bad' : (!isLong && (state.rsi < 30 || state.rsi > 60)) ? 'bad' : 'good';
     const stochColor = state.stochK !== null ? ((isLong && state.stochK > 75) || (!isLong && state.stochK < 25) ? 'bad' : 'good') : 'warn';
@@ -1308,7 +1319,7 @@ function renderCard(symbol, d, htf, htf4h, delay, vol1h, vol4h, stoch1h, stoch4h
   }
 
   const eliteClass = isElite ? 'elite-card' : isPrep ? 'prep-card' : '';
-  cardDataStore[symbol] = { d, htf, htf4h, vol1h, vol4h, stoch1h, stoch4h };
+  cardDataStore[symbol] = { d, htf, htf4h, vol1h, vol4h, stoch1h, stoch4h, fresh };
 
   return `<div class="card ${d.signal} ${eliteClass}" style="animation-delay:${delay}ms" onclick="openChartFromStore('${symbol}')">
     <div class="card-top">
