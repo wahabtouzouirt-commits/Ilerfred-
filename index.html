@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ScalpScan Pro v6.9 - Modo Agresivo (Validación Volumen Multi-TF incl. PREPARING)</title>
+<title>Scalping Scanner Pro v6 - Con comparativa en gráfico</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -13,12 +13,9 @@
     --warn:#fbbf24;--vol:#a78bfa;
     --trend-long:#22d3ee;--trend-short:#f43f5e;
     --elite:#d4af37;
-    --preparing:#c084fc;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
   body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
-
-  /* ---- HEADER ---- */
   .header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border);background:rgba(13,17,23,0.97);}
   .logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px;color:var(--accent);}
   .logo span{color:var(--elite);}
@@ -26,8 +23,6 @@
   .badge{font-family:'Space Mono',monospace;font-size:10px;padding:3px 8px;border-radius:4px;}
   .badge-v{background:rgba(212,175,55,0.15);border:1px solid rgba(212,175,55,0.5);color:var(--elite);}
   .badge-tf{background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);color:var(--accent);}
-
-  /* ---- CONTROLS ---- */
   .controls{display:flex;gap:8px;padding:12px 20px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--border);}
   .btn{font-family:'Space Mono',monospace;font-size:11px;padding:8px 14px;border:none;border-radius:6px;cursor:pointer;text-transform:uppercase;}
   .btn-scan{background:var(--elite);color:#000;font-weight:700;}
@@ -35,56 +30,36 @@
   .btn-scan:disabled{background:#5a4a2a;color:#2a2a1a;}
   .btn-auto{background:transparent;color:var(--accent);border:1px solid var(--accent);}
   .btn-auto.active{background:rgba(56,189,248,0.15);}
-
-  /* auto countdown */
-  #autoCountdown{font-family:'Space Mono',monospace;font-size:10px;color:var(--warn);display:none;padding:4px 8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:6px;}
-
   .alert-selector{display:flex;gap:8px;margin-left:auto;align-items:center;background:rgba(0,0,0,0.3);padding:4px 12px;border-radius:20px;}
   .alert-selector span{font-size:9px;font-family:'Space Mono',monospace;color:var(--muted);}
   .alert-btn{background:transparent;border:1px solid var(--border);color:var(--muted);font-size:10px;padding:4px 8px;border-radius:16px;cursor:pointer;}
   .alert-btn.active{background:rgba(56,189,248,0.2);border-color:var(--accent);color:var(--accent);}
   .alert-btn.elite-active{background:rgba(212,175,55,0.2);border-color:var(--elite);color:var(--elite);}
-
   .stats{display:flex;gap:14px;margin-left:20px;font-family:'Space Mono',monospace;}
   .stat{display:flex;flex-direction:column;align-items:center;gap:1px;}
   .stat-val{font-size:13px;font-weight:700;}
   .stat-lbl{color:var(--muted);font-size:8px;letter-spacing:1px;}
-
   .progress-bar{height:2px;background:var(--border);}
   .progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--elite));width:0%;transition:width 0.2s;}
-
-  /* ---- FILTERS ---- */
-  .filters{display:flex;gap:5px;padding:8px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap;align-items:center;}
+  .filters{display:flex;gap:5px;padding:8px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
   .fbtn{font-family:'Space Mono',monospace;font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;}
   .fbtn:hover{border-color:var(--accent);color:var(--accent);}
   .fbtn.active{background:rgba(56,189,248,0.15);border-color:var(--accent);color:var(--accent);}
   .fbtn.elite.active{background:rgba(212,175,55,0.2);border-color:var(--elite);color:var(--elite);}
-  .fbtn.prep.active{background:rgba(192,132,252,0.2);border-color:var(--preparing);color:var(--preparing);}
-
-  /* 4H badge obligatorio */
-  .filter-rule{font-family:'Space Mono',monospace;font-size:9px;padding:3px 10px;border-radius:20px;background:rgba(255,51,102,0.1);border:1px solid rgba(255,51,102,0.3);color:var(--short);margin-left:auto;}
-
-  /* ---- CAPBAR ---- */
   .capbar{display:flex;gap:8px;padding:8px 20px;border-bottom:1px solid var(--border);background:rgba(13,17,23,0.9);flex-wrap:wrap;align-items:center;}
   .clbl{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);}
   .cinput{font-family:'Space Mono',monospace;font-size:12px;background:var(--border);border:1px solid #2a3a4a;color:white;padding:5px 8px;border-radius:4px;width:85px;text-align:right;}
   .cinfo{font-family:'Space Mono',monospace;font-size:10px;color:var(--accent);}
-
-  /* ---- GRID ---- */
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1px;background:var(--border);}
   .card{background:var(--panel);padding:14px;position:relative;animation:fadeIn 0.4s ease forwards;opacity:0;cursor:pointer;}
-  .card:hover{background:#151d2a;}
+  .card:hover{background:#151d2a;border-left:2px solid var(--elite);}
   @keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
   .card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;}
   .card.early_long::before{background:#f59e0b;}
   .card.early_short::before{background:#f97316;}
   .card.trend_long::before{background:var(--trend-long);}
   .card.trend_short::before{background:var(--trend-short);}
-  .card.preparing_long::before,.card.preparing_short::before{background:var(--preparing);}
   .card.elite-card::after{content:'👑';position:absolute;top:8px;right:12px;font-size:18px;opacity:0.8;}
-  .card.prep-card::after{content:'⏳';position:absolute;top:8px;right:12px;font-size:18px;opacity:0.8;}
-
-  /* ---- CARD INTERNALS ---- */
   .card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
   .sym{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;}
   .sig-badge{font-family:'Space Mono',monospace;font-size:9px;font-weight:700;padding:3px 8px;border-radius:3px;}
@@ -93,8 +68,6 @@
   .score-track{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
   .score-fill{height:100%;border-radius:2px;}
   .score-num{font-family:'Space Mono',monospace;font-size:11px;font-weight:700;min-width:24px;text-align:right;}
-
-  /* banners */
   .banner{font-family:'Space Mono',monospace;font-size:9px;padding:6px 10px;border-radius:4px;margin-bottom:8px;border-left:3px solid;}
   .b-elite{background:rgba(212,175,55,0.2);border-color:var(--elite);color:var(--elite);font-weight:700;text-align:center;}
   .b-fuerte{background:rgba(245,158,11,0.2);border-color:#f59e0b;color:#f59e0b;text-align:center;}
@@ -102,31 +75,20 @@
   .b-neutral{background:rgba(51,65,85,0.1);color:var(--muted);border-color:var(--neutral);}
   .b-trend-long{background:rgba(34,211,238,0.08);color:var(--trend-long);border-color:var(--trend-long);}
   .b-trend-short{background:rgba(244,63,94,0.08);color:var(--trend-short);border-color:var(--trend-short);}
-  .b-preparing{background:rgba(192,132,252,0.15);border-color:var(--preparing);color:var(--preparing);font-weight:700;text-align:center;animation:prepPulse 2s infinite;}
-  .b-volwarn{background:rgba(251,191,36,0.15);border-color:#fbbf24;color:#fbbf24;text-align:center;}
-  @keyframes prepPulse{0%,100%{opacity:1;}50%{opacity:0.6;}}
-
-  /* PREPARING card glow */
-  .card.preparing_long,.card.preparing_short{box-shadow:0 0 0 1px rgba(192,132,252,0.3) inset;}
-
   .htf-badge-group{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;}
   .htf-b{font-size:8px;padding:2px 6px;border-radius:3px;font-family:'Space Mono',monospace;}
   .htf-bull{background:rgba(0,255,136,0.12);color:var(--long);border:1px solid rgba(0,255,136,0.3);}
   .htf-bear{background:rgba(255,51,102,0.12);color:var(--short);border:1px solid rgba(255,51,102,0.3);}
   .htf-neu{background:rgba(100,116,139,0.15);color:var(--muted);border:1px solid var(--border);}
-  .htf-aligned{background:rgba(212,175,55,0.15);color:var(--elite);border:1px solid rgba(212,175,55,0.4);font-weight:700;}
-
   .pullback-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:9px;font-family:'Space Mono',monospace;}
   .pb-label{color:var(--muted);}
   .pb-track{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden;position:relative;}
   .pb-fill{height:100%;border-radius:3px;}
   .pb-val{font-weight:700;min-width:35px;text-align:right;}
-
   .inds{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;}
   .ind{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:4px;padding:5px;text-align:center;}
   .ind-l{font-size:8px;color:var(--muted);font-family:'Space Mono',monospace;margin-bottom:2px;}
   .ind-v{font-family:'Space Mono',monospace;font-size:11px;font-weight:700;}
-
   .rsi-wrap{margin:6px 0;}
   .rsi-hdr{display:flex;justify-content:space-between;font-size:8px;color:var(--muted);margin-bottom:3px;}
   .rsi-track{height:4px;background:var(--border);border-radius:2px;position:relative;}
@@ -135,14 +97,10 @@
   .vol-row{display:flex;align-items:center;gap:6px;font-size:10px;}
   .vol-track{flex:1;height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
   .vol-fill{height:100%;background:var(--vol);}
-  .vol-mtf-wrap{display:flex;flex-direction:column;gap:3px;margin-bottom:7px;}
   .conds{display:flex;flex-wrap:wrap;gap:3px;margin-top:7px;}
   .cond{font-size:8px;padding:2px 6px;border-radius:20px;font-family:'Space Mono',monospace;}
   .cond.ok{background:rgba(0,255,136,0.08);color:var(--long);border:1px solid rgba(0,255,136,0.2);}
   .cond.fail{background:rgba(255,51,102,0.08);color:var(--short);border:1px solid rgba(255,51,102,0.2);}
-  .cond.prep{background:rgba(192,132,252,0.1);color:var(--preparing);border:1px solid rgba(192,132,252,0.3);}
-
-  /* ---- RISK BOX ---- */
   .risk{margin-top:10px;border:1px solid var(--border);border-radius:6px;overflow:hidden;}
   .risk-hdr{font-size:9px;padding:5px 10px;display:flex;justify-content:space-between;}
   .risk-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border);}
@@ -153,91 +111,108 @@
   .vwap-b{font-size:8px;padding:2px 5px;border-radius:3px;}
   .vwap-up{background:rgba(0,255,136,0.1);color:var(--long);}
   .vwap-dn{background:rgba(255,51,102,0.1);color:var(--short);}
-
-  .empty{grid-column:1/-1;text-align:center;padding:60px;color:var(--muted);font-size:12px;font-family:'Space Mono',monospace;}
-
-  /* ---- FOOTER ---- */
+  .empty{grid-column:1/-1;text-align:center;padding:60px;color:var(--muted);font-size:12px;}
   .footer{font-size:9px;color:var(--muted);padding:8px 20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;}
   .live-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--elite);margin-right:5px;animation:pulse 1.5s infinite;}
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
 
-  /* ---- TF SWITCHER (modal) ---- */
-  .tf-switcher{display:flex;gap:6px;align-items:center;background:rgba(0,0,0,0.3);padding:4px 10px;border-radius:20px;}
-  .tf-switcher span{font-size:9px;font-family:'Space Mono',monospace;color:var(--muted);margin-right:2px;}
-  .tf-btn{font-family:'Space Mono',monospace;font-size:11px;font-weight:700;padding:4px 10px;border-radius:16px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:0.15s;}
-  .tf-btn:hover{border-color:var(--accent);color:var(--accent);}
-  .tf-btn.active{background:rgba(56,189,248,0.2);border-color:var(--accent);color:var(--accent);}
-  .tf-loading{font-family:'Space Mono',monospace;font-size:10px;color:var(--warn);margin-left:6px;}
+  /* ----- MODAL DEL GRÁFICO CON PANEL DE COMPARACIÓN ----- */
+  .chart-modal {
+    display: none;
+    position: fixed;
+    z-index: 999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.85);
+    animation: fadeIn 0.3s ease;
+  }
+  .chart-modal.open { display: flex; justify-content: center; align-items: center; }
+  .modal-content {
+    background: #131722;
+    width: 94%;
+    max-width: 1200px;
+    height: 92vh;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .modal-header {
+    padding: 12px 20px;
+    background: #1a1f2e;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .modal-header h2 { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 1px; color: var(--elite); }
+  .modal-header .close-btn { background: none; border: none; color: #aaa; font-size: 28px; cursor: pointer; padding: 0 10px; transition: 0.2s; }
+  .modal-header .close-btn:hover { color: white; transform: scale(1.1); }
 
-  /* ---- CHART MODAL ---- */
-  .chart-modal{display:none;position:fixed;z-index:999;left:0;top:0;width:100%;height:100%;background-color:rgba(0,0,0,0.85);animation:fadeIn 0.3s ease;}
-  .chart-modal.open{display:flex;justify-content:center;align-items:center;}
-  .modal-content{background:#131722;width:94%;max-width:1200px;height:92vh;border-radius:12px;border:1px solid var(--border);position:relative;overflow:hidden;display:flex;flex-direction:column;}
-  .modal-header{padding:12px 20px;background:#1a1f2e;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
-  .modal-header h2{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--elite);}
-  .modal-header .close-btn{background:none;border:none;color:#aaa;font-size:28px;cursor:pointer;padding:0 10px;transition:0.2s;}
-  .modal-header .close-btn:hover{color:white;transform:scale(1.1);}
-  #statusPanel{background:#0b0e16;border-bottom:1px solid var(--border);padding:10px 20px;display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;flex-shrink:0;font-size:11px;font-family:'Space Mono',monospace;min-height:50px;}
-  #statusPanel .status-item{display:flex;align-items:center;gap:5px;}
-  #statusPanel .status-item .label{color:var(--muted);}
-  #statusPanel .status-item .value{font-weight:700;}
-  #statusPanel .status-item .good{color:var(--long);}
-  #statusPanel .status-item .warn{color:var(--warn);}
-  #statusPanel .status-item .bad{color:var(--short);}
-  #statusPanel .recommendation{padding:4px 12px;border-radius:20px;font-weight:700;font-size:12px;margin-left:auto;}
-  #statusPanel .recommendation.keep{background:rgba(0,255,136,0.15);color:var(--long);border:1px solid var(--long);}
-  #statusPanel .recommendation.watch{background:rgba(251,191,36,0.15);color:var(--warn);border:1px solid var(--warn);}
-  #statusPanel .recommendation.close{background:rgba(255,51,102,0.15);color:var(--short);border:1px solid var(--short);}
-  #statusPanel .loading-text{color:var(--muted);font-style:italic;}
-  .chart-container{flex:1;position:relative;min-height:0;}
-  .chart-container iframe{width:100%;height:100%;border:none;}
-  .chart-loader{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--muted);font-size:14px;font-family:'Space Mono',monospace;pointer-events:none;}
+  /* Panel de comparación */
+  #statusPanel {
+    background: #0b0e16;
+    border-bottom: 1px solid var(--border);
+    padding: 10px 20px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 20px;
+    flex-shrink: 0;
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+    min-height: 50px;
+  }
+  #statusPanel .status-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  #statusPanel .status-item .label { color: var(--muted); }
+  #statusPanel .status-item .value { font-weight: 700; }
+  #statusPanel .status-item .good { color: var(--long); }
+  #statusPanel .status-item .warn { color: var(--warn); }
+  #statusPanel .status-item .bad { color: var(--short); }
+  #statusPanel .recommendation {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 12px;
+    margin-left: auto;
+  }
+  #statusPanel .recommendation.keep { background: rgba(0,255,136,0.15); color: var(--long); border: 1px solid var(--long); }
+  #statusPanel .recommendation.watch { background: rgba(251,191,36,0.15); color: var(--warn); border: 1px solid var(--warn); }
+  #statusPanel .recommendation.close { background: rgba(255,51,102,0.15); color: var(--short); border: 1px solid var(--short); }
+  #statusPanel .loading-text { color: var(--muted); font-style: italic; }
 
-  /* ---- SIGNAL HISTORY PANEL ---- */
-  #historyPanel{background:var(--panel);border-top:2px solid var(--border);padding:0;}
-  .history-header{display:flex;align-items:center;justify-content:space-between;padding:8px 20px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;}
-  .history-header h3{font-family:'Space Mono',monospace;font-size:11px;color:var(--accent);letter-spacing:1px;}
-  .history-header .h-meta{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);}
-  .history-toggle{font-size:14px;color:var(--muted);transition:0.2s;}
-  .history-body{overflow-x:auto;max-height:180px;overflow-y:auto;}
-  .history-body.collapsed{display:none;}
-  .history-table{width:100%;border-collapse:collapse;font-family:'Space Mono',monospace;font-size:10px;}
-  .history-table th{padding:5px 12px;text-align:left;color:var(--muted);font-size:8px;letter-spacing:1px;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.3);position:sticky;top:0;z-index:1;}
-  .history-table td{padding:5px 12px;border-bottom:1px solid rgba(26,35,50,0.5);white-space:nowrap;}
-  .history-table tr:hover td{background:rgba(255,255,255,0.02);}
-  .h-elite{color:var(--elite);}
-  .h-super{color:#ffaa44;}
-  .h-prep{color:var(--preparing);}
-  .h-long{color:var(--long);}
-  .h-short{color:var(--short);}
-  .h-score{font-weight:700;}
-  .h-clear{font-size:9px;padding:3px 8px;border-radius:12px;background:transparent;border:1px solid var(--border);color:var(--muted);cursor:pointer;}
-  .h-clear:hover{border-color:var(--short);color:var(--short);}
-  .history-empty{padding:20px;text-align:center;color:var(--muted);font-size:10px;font-family:'Space Mono',monospace;}
+  .chart-container { flex: 1; position: relative; min-height: 0; }
+  .chart-container iframe { width: 100%; height: 100%; border: none; }
+  .chart-loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--muted); font-size: 14px; font-family: 'Space Mono', monospace; }
 
-  @media(max-width:700px){
-    .modal-content{width:98%;height:95vh;}
-    .modal-header h2{font-size:16px;}
-    #statusPanel{font-size:9px;padding:8px 12px;gap:6px 12px;}
-    #statusPanel .recommendation{font-size:10px;padding:2px 8px;}
-    .controls{gap:5px;}
+  @media (max-width: 700px) {
+    .modal-content { width: 98%; height: 95vh; }
+    .modal-header h2 { font-size: 16px; }
+    #statusPanel { font-size: 9px; padding: 8px 12px; gap: 6px 12px; }
+    #statusPanel .recommendation { font-size: 10px; padding: 2px 8px; }
   }
 </style>
 </head>
 <body>
-
 <div class="header">
   <div class="logo">SCALP<span>SCAN</span> PRO</div>
   <div class="badges">
-    <div class="badge badge-v">v6.9 · MODO AGRESIVO</div>
-    <div class="badge badge-tf">4H→1H→15M · TOP 50</div>
+    <div class="badge badge-v">v6.0 · 4H ALINEADO</div>
+    <div class="badge badge-tf">15M+1H+4H · TOP 35</div>
   </div>
 </div>
-
 <div class="controls">
   <button class="btn btn-scan" id="scanBtn" onclick="scanAll()">⚡ ESCANEAR</button>
   <button class="btn btn-auto" id="autoBtn" onclick="toggleAuto()">▶ AUTO OFF</button>
-  <span id="autoCountdown">⏱ próximo: <span id="cdSecs">900</span>s</span>
   <div class="alert-selector">
     <span>🔔 ALERTAS:</span>
     <button class="alert-btn" id="alertOff" onclick="setAlertMode('off')">OFF</button>
@@ -246,29 +221,19 @@
     <button class="alert-btn" id="alertAll" onclick="setAlertMode('all')">TODO</button>
   </div>
   <div class="stats">
-    <div class="stat" onclick="selectFilterByName('elite')" style="cursor:pointer;"><div class="stat-val" id="sElite" style="color:var(--elite)">0</div><div class="stat-lbl">ELITE</div></div>
-    <div class="stat" onclick="selectFilterByName('super')" style="cursor:pointer;"><div class="stat-val" id="sSuper" style="color:#ffaa44">0</div><div class="stat-lbl">SUPER</div></div>
-    <div class="stat" onclick="selectFilterByName('preparing')" style="cursor:pointer;"><div class="stat-val" id="sPrep" style="color:var(--preparing)">0</div><div class="stat-lbl">PREP</div></div>
-    <div class="stat" onclick="selectFilterByName('fresh')" style="cursor:pointer;"><div class="stat-val" id="sFresh" style="color:#4ade80">0</div><div class="stat-lbl">FRESCO</div></div>
-    <div class="stat" onclick="selectFilterByName('twolayer')" style="cursor:pointer;"><div class="stat-val" id="s2L" style="color:#38bdf8">0</div><div class="stat-lbl">2 CAPAS</div></div>
-    <div class="stat" onclick="selectFilterByName('all')" style="cursor:pointer;"><div class="stat-val" id="sTotal" style="color:var(--accent)">0</div><div class="stat-lbl">TOTAL</div></div>
+    <div class="stat"><div class="stat-val" id="sElite" style="color:var(--elite)">0</div><div class="stat-lbl">ELITE</div></div>
+    <div class="stat"><div class="stat-val" id="sSuper" style="color:#ffaa44">0</div><div class="stat-lbl">SUPER</div></div>
+    <div class="stat"><div class="stat-val" id="sTotal" style="color:var(--accent)">0</div><div class="stat-lbl">TOTAL</div></div>
   </div>
 </div>
-
 <div class="progress-bar"><div class="progress-fill" id="prog"></div></div>
-
 <div class="filters">
-  <button class="fbtn elite active" data-filter="elite" onclick="setFilter('elite',this)">👑 ELITE</button>
-  <button class="fbtn prep" data-filter="preparing" onclick="setFilter('preparing',this)">⏳ PREPARING</button>
-  <button class="fbtn super" data-filter="super" onclick="setFilter('super',this)">⭐ SUPER</button>
-  <button class="fbtn" data-filter="fresh" onclick="setFilter('fresh',this)" style="border-color:#4ade80;color:#4ade80;">🌱 FRESCO</button>
-  <button class="fbtn" data-filter="twolayer" onclick="setFilter('twolayer',this)" style="border-color:#38bdf8;color:#38bdf8;">🎯 2 CAPAS</button>
-  <button class="fbtn" data-filter="confirmed" onclick="setFilter('confirmed',this)">✅ 1H CONF</button>
-  <button class="fbtn" data-filter="signals" onclick="setFilter('signals',this)">🎯 SEÑALES</button>
-  <button class="fbtn" data-filter="all" onclick="setFilter('all',this)">TODOS</button>
-  <span class="filter-rule">🔒 4H OBLIGATORIO · VOL 4H+1H ≥0.7x (PREP ≥0.3x/0.5x) · AGRESIVO</span>
+  <button class="fbtn elite active" onclick="setFilter('elite',this)">👑 ELITE (4H+1H)</button>
+  <button class="fbtn super" onclick="setFilter('super',this)">⭐ SUPER (4H+1H)</button>
+  <button class="fbtn" onclick="setFilter('confirmed',this)">✅ 1H CONF</button>
+  <button class="fbtn" onclick="setFilter('signals',this)">🎯 SEÑALES</button>
+  <button class="fbtn" onclick="setFilter('all',this)">TODOS</button>
 </div>
-
 <div class="capbar">
   <span class="clbl">CUENTA:</span>
   <input class="cinput" id="capInput" type="number" value="5000" min="100" step="100" oninput="updateCap()">
@@ -277,126 +242,49 @@
   <span class="clbl">% | LEV:</span>
   <input class="cinput" id="levInput" type="number" value="10" min="1" max="50" step="1" style="width:50px" oninput="updateCap()">
   <span class="clbl">x</span>
-  <span class="cinfo" id="capInfo">Riesgo: $50.00 · Margen: $500.00</span>
+  <span class="cinfo" id="capInfo">Riesgo: $50.00 · Margen: $1000.00</span>
 </div>
+<div class="grid" id="grid"><div class="empty">Pulsa ESCANEAR · Buscando señales con 4H+1H alineadas</div></div>
+<div class="footer"><span id="tsLeft">—</span><span>BINANCE · 15M+1H+4H · Top 35 · v6.0 ELITE+4H · 📊 Click en tarjeta para gráfico</span></div>
 
-<div class="grid" id="grid">
-  <div class="empty">Pulsa ESCANEAR · 4H obligatorio para todas las señales · 50 pares<br><br>
-    <span style="color:var(--preparing);font-size:10px;">⏳ PREPARING = señal a punto de formarse · Prepárate antes de que llegue tarde</span>
-  </div>
-</div>
-
-<!-- SIGNAL HISTORY PANEL -->
-<div id="historyPanel">
-  <div class="history-header" onclick="toggleHistory()">
-    <h3>📋 HISTORIAL DE SEÑALES · SESIÓN ACTUAL</h3>
-    <div style="display:flex;align-items:center;gap:12px;">
-      <span class="h-meta" id="histMeta">0 señales</span>
-      <button class="h-clear" onclick="event.stopPropagation();clearHistory()">🗑 Limpiar</button>
-      <span class="history-toggle" id="histToggle">▲</span>
-    </div>
-  </div>
-  <div class="history-body" id="historyBody">
-    <div class="history-empty" id="histEmpty">Sin señales aún. Activa AUTO para capturar señales automáticamente cada 15 min.</div>
-    <table class="history-table" id="histTable" style="display:none;">
-      <thead>
-        <tr>
-          <th>HORA</th>
-          <th>PAR</th>
-          <th>TIPO</th>
-          <th>DIRECCIÓN</th>
-          <th>SCORE</th>
-          <th>4H</th>
-          <th>1H</th>
-          <th>VOL 15M</th>
-          <th>VOL 1H</th>
-          <th>VOL 4H</th>
-          <th>RSI</th>
-        </tr>
-      </thead>
-      <tbody id="histTbody"></tbody>
-    </table>
-  </div>
-</div>
-
-<div class="footer">
-  <span id="tsLeft">—</span>
-  <span>BINANCE · 4H→1H→15M · Top 50 · v6.9 MODO AGRESIVO · 4H OBLIGATORIO · VOL MULTI-TF (CONFIRMADAS ≥0.7x · PREP ≥0.3x/0.5x) · ⏳ EARLY WARNING · 📊 Click tarjeta para gráfico</span>
-</div>
-
-<!-- CHART MODAL -->
+<!-- MODAL DEL GRÁFICO + PANEL DE COMPARACIÓN -->
 <div id="chartModal" class="chart-modal" onclick="closeChart(event)">
   <div class="modal-content" onclick="event.stopPropagation();">
     <div class="modal-header">
       <h2 id="modalTitle">📊 Gráfico</h2>
-      <div class="tf-switcher">
-        <span>TF:</span>
-        <button class="tf-btn active" id="tfBtn15" onclick="switchModalTF('15m','15')">15M</button>
-        <button class="tf-btn" id="tfBtn1h" onclick="switchModalTF('1h','60')">1H</button>
-        <button class="tf-btn" id="tfBtn4h" onclick="switchModalTF('4h','240')">4H</button>
-        <span class="tf-loading" id="tfLoading" style="display:none">⏳</span>
-      </div>
       <button class="close-btn" onclick="closeChart()">✕</button>
     </div>
-    <div id="statusPanel"><span class="loading-text">⏳ Cargando datos...</span></div>
+    <div id="statusPanel">
+      <span class="loading-text">⏳ Obteniendo datos en tiempo real para comparar...</span>
+    </div>
     <div class="chart-container" id="chartContainer">
-      <div class="chart-loader" id="chartLoader">Cargando gráfico TradingView...</div>
+      <div class="chart-loader">Cargando gráfico...</div>
       <iframe id="tvIframe" src="" allowfullscreen></iframe>
     </div>
   </div>
 </div>
 
 <script>
-// ============================================================
-// 50 PARES
-// ============================================================
+// --------------------------------------------------------------
+// LISTA REDUCIDA A 35 PARES (más líquidos)
+// --------------------------------------------------------------
 const PAIRS = [
-  'BTCUSDT','ETHUSDT','BNBUSDT','SOLUSDT','XRPUSDT',
-  'DOGEUSDT','ADAUSDT','AVAXUSDT','TRXUSDT','DOTUSDT',
-  'MATICUSDT','LINKUSDT','LTCUSDT','BCHUSDT','NEARUSDT',
-  'UNIUSDT','ATOMUSDT','ETCUSDT','XLMUSDT','INJUSDT',
-  'OPUSDT','ARBUSDT','APTUSDT','SUIUSDT','RUNEUSDT',
-  'FTMUSDT','AAVEUSDT','LDOUSDT','ICPUSDT','FILUSDT',
-  'MKRUSDT','SNXUSDT','CRVUSDT','COMPUSDT','DYDXUSDT',
-  'WLDUSDT','SEIUSDT','TIAUSDT','STXUSDT','ORDIUSDT',
-  'PYTHUSDT','JUPUSDT','PENDLEUSDT','ONDOUSDT','FETUSDT',
-  'RENDERUSDT','THETAUSDT','GALAUSDT','SANDUSDT','MANAUSDT'
+  'BTCUSDT','ETHUSDT','BNBUSDT','SOLUSDT','XRPUSDT','DOGEUSDT','ADAUSDT','AVAXUSDT',
+  'TRXUSDT','DOTUSDT','MATICUSDT','LINKUSDT','LTCUSDT','BCHUSDT','NEARUSDT','UNIUSDT',
+  'ATOMUSDT','ETCUSDT','XLMUSDT','INJUSDT','OPUSDT','ARBUSDT','APTUSDT','SUIUSDT',
+  'RUNEUSDT','FTMUSDT','AAVEUSDT','LDOUSDT','ICPUSDT','FILUSDT','MKRUSDT','SNXUSDT',
+  'CRVUSDT','COMPUSDT','DYDXUSDT'
 ];
 
-// ============================================================
-// ESTADO GLOBAL
-// ============================================================
-let allCards = [], currentFilter = 'elite', autoInterval = null, autoCountdownInterval = null;
-let scanning = false, alertMode = 'elite';
+// Variables globales
+let allCards = [], currentFilter = 'elite', autoInterval = null, scanning = false;
+let alertMode = 'elite';
 let previousEliteSignals = [], previousSuperSignals = [], previousAllStrong = [], lastNotificationTime = 0;
 let audioCtx = null;
-let signalHistory = []; // historial de sesión
-let historyOpen = true;
 
-// Caché de 4H/1H (expira 15 min) — ahora incluye volumen de cada TF
-const htfCache = {};
-const HTF_CACHE_TTL = 15 * 60 * 1000;
-
-// ============================================================
-// MODO AGRESIVO — umbrales relajados a propósito para generar más señales,
-// sincronizados 1:1 con scan.js (bot de Telegram). Esto sube ruido/falsos
-// positivos; es el trade-off pedido.
-// ============================================================
-const MTF_MIN_VOL     = 0.7;   // antes 1.0
-const PREP_MIN_VOL_4H = 0.3;   // antes 0.5
-const PREP_MIN_VOL_1H = 0.5;   // antes 0.8
-
-// FIX E (paridad con scan.js) — earlyWarning() genera máx. 5 triggers,
-// evalPair() puntúa sobre 9 condiciones. Antes toda la UI mostraba "/9"
-// también para PREPARING, infravalorando su score real (un 2/9 real de
-// PREPARING es en verdad 2 de 5, un 40%, no un 22%).
-const CONFIRMED_MAX_SCORE = 9;
-const PREP_MAX_SCORE = 5;
-function scoreMaxFor(isPrepFlag) { return isPrepFlag ? PREP_MAX_SCORE : CONFIRMED_MAX_SCORE; }
-
-// ============================================================
-// INDICADORES
-// ============================================================
+// --------------------------------------------------------------
+// FUNCIONES DE INDICADORES (EMA, RSI, StochRSI, Bollinger, VWAP, ATR)
+// --------------------------------------------------------------
 function ema(p, n) {
   if (p.length < n) return null;
   const k = 2 / (n + 1);
@@ -452,178 +340,7 @@ function trendGeneric(candles) {
   const bull = (p > e21 ? 1 : 0) + (e21 > e50 ? 1 : 0) + (r > 50 ? 1 : 0) + (vw && p > vw ? 1 : 0);
   return bull >= 3 ? 'bull' : bull <= 1 ? 'bear' : 'neutral';
 }
-
-// ============================================================
-// FRESCO — 3 filtros independientes (no correlacionados entre sí)
-// A diferencia de RSI/StochK/EMA (todos derivados del mismo precio de
-// cierre y por tanto redundantes entre sí), FRESCO usa 3 fuentes de
-// evidencia distintas:
-//   1) Sesgo estructural — swings de máximos/mínimos en 4H (no medias)
-//   2) Disparador — reacción de precio (rechazo) en un nivel real del 1H
-//   3) Participación — volumen real (no derivado del precio)
-// Esto es intencionadamente independiente del sistema ELITE/SUPER/
-// PREPARING existente: es un filtro adicional, no un reemplazo.
-// ============================================================
-function findSwings(candles, leftRight = 2) {
-  const highs = [], lows = [];
-  for (let i = leftRight; i < candles.length - leftRight; i++) {
-    const h = parseFloat(candles[i][2]), l = parseFloat(candles[i][3]);
-    let isHigh = true, isLow = true;
-    for (let j = i - leftRight; j <= i + leftRight; j++) {
-      if (j === i) continue;
-      if (parseFloat(candles[j][2]) >= h) isHigh = false;
-      if (parseFloat(candles[j][3]) <= l) isLow = false;
-    }
-    if (isHigh) highs.push({ idx: i, price: h });
-    if (isLow) lows.push({ idx: i, price: l });
-  }
-  return { highs, lows };
-}
-function structuralBias(candles) {
-  const { highs, lows } = findSwings(candles, 2);
-  if (highs.length < 2 || lows.length < 2) return 'neutral';
-  const lastH = highs[highs.length - 1], prevH = highs[highs.length - 2];
-  const lastL = lows[lows.length - 1], prevL = lows[lows.length - 2];
-  if (lastH.price > prevH.price && lastL.price > prevL.price) return 'bull';
-  if (lastH.price < prevH.price && lastL.price < prevL.price) return 'bear';
-  return 'neutral';
-}
-function nearestLevels(candles, currentPrice, maxDistPct = 3) {
-  const { highs, lows } = findSwings(candles, 2);
-  const above = highs.filter(h => h.price > currentPrice).sort((a, b) => a.price - b.price);
-  const below = lows.filter(l => l.price < currentPrice).sort((a, b) => b.price - a.price);
-  const resistance = above.length ? above[0] : null;
-  const support = below.length ? below[0] : null;
-  const resOk = resistance && ((resistance.price - currentPrice) / currentPrice * 100) <= maxDistPct;
-  const supOk = support && ((currentPrice - support.price) / currentPrice * 100) <= maxDistPct;
-  return { resistance: resOk ? resistance : null, support: supOk ? support : null };
-}
-function detectRejection(candles, level, dir, lookback = 3) {
-  const n = candles.length;
-  for (let i = n - 1; i >= Math.max(0, n - lookback); i--) {
-    const c = candles[i];
-    const o = parseFloat(c[1]), h = parseFloat(c[2]), l = parseFloat(c[3]), cl = parseFloat(c[4]);
-    const range = h - l; if (range <= 0) continue;
-    if (dir === 'short') {
-      const touched = h >= level.price * 0.999;
-      const rejected = cl < level.price && (h - cl) / range > 0.4 && cl < o;
-      if (touched && rejected) return true;
-    } else {
-      const touched = l <= level.price * 1.001;
-      const rejected = cl > level.price && (cl - l) / range > 0.4 && cl > o;
-      if (touched && rejected) return true;
-    }
-  }
-  return false;
-}
-function freshSignal(closes, candles, struct4h, levels1h, vol1h, vol4h) {
-  const price = closes[closes.length - 1];
-  const vol = volSpikeCalc(candles);
-  const volOk = vol.ratio >= 1.0 && vol1h >= MTF_MIN_VOL && vol4h >= MTF_MIN_VOL;
-  if (!volOk) return null;
-  if (struct4h === 'neutral') return null;
-  if (struct4h === 'bear' && levels1h.resistance && detectRejection(candles, levels1h.resistance, 'short')) {
-    return { signal: 'fresh_short', level: levels1h.resistance.price, price, vol: vol.ratio };
-  }
-  if (struct4h === 'bull' && levels1h.support && detectRejection(candles, levels1h.support, 'long')) {
-    return { signal: 'fresh_long', level: levels1h.support.price, price, vol: vol.ratio };
-  }
-  return null;
-}
-
-// ============================================================
-// EARLY WARNING — detecta señal a punto de formarse
-// FIX v6.8 — recibe vol1h/vol4h y aplica un gate de volumen MTF.
-// FIX D (MODO AGRESIVO, paridad con scan.js) — ventana RSI ampliada
-// (antes 46-52/48-54) para detectar el giro un poco antes.
-// ============================================================
-function earlyWarning(closes, candles, htf1h, htf4h, vol1h, vol4h) {
-  const p = closes[closes.length - 1];
-  const e9 = ema(closes, 9), e21 = ema(closes, 21), e50 = ema(closes, 50);
-  const prev = closes.slice(0, -1);
-  const pe9 = ema(prev, 9), pe21 = ema(prev, 21);
-  const r = rsiW(closes, 14);
-  const sk = stochRsi(closes), psk = stochRsi(prev);
-  const bb = boll(closes);
-  const vol = volSpikeCalc(candles);
-
-  if (!e9 || !e21 || !e50 || !pe9 || !pe21 || r === null) return null;
-
-  const emaDiffPct = Math.abs(e9 - e21) / e21 * 100;
-  const emaCrossingLong  = pe9 <= pe21 && e9 > e21 * 0.998 && e9 < e21 * 1.005; // inminente cruce alcista
-  const emaCrossingShort = pe9 >= pe21 && e9 < e21 * 1.002 && e9 > e21 * 0.995; // inminente cruce bajista
-
-  // FIX D (MODO AGRESIVO) — antes 46-52 / 48-54
-  const rsiNearLong  = r >= 44 && r <= 54; // RSI a punto de cruzar 50 al alza
-  const rsiNearShort = r >= 46 && r <= 56; // RSI a punto de cruzar 50 a la baja
-
-  const sqz = bb ? bb.std / bb.mid < 0.015 : false; // BB apretando
-  const volBuilding = vol.ratio >= 1.2 && vol.ratio < 2.0; // volumen creciendo
-
-  const stochCrossingLong  = psk.k !== null && sk.k !== null && psk.k < psk.d && sk.k >= sk.d && sk.k < 40;
-  const stochCrossingShort = psk.k !== null && sk.k !== null && psk.k > psk.d && sk.k <= sk.d && sk.k > 60;
-
-  // Fix 1: Volumen mínimo 1.0x en 15M — sin volumen no hay señal real
-  if (vol.ratio < 1.0) return null;
-
-  // FIX v6.8 — Fix 1b: Gate de volumen MTF (4H y 1H), umbral agresivo.
-  const v1h = typeof vol1h === 'number' ? vol1h : 0;
-  const v4h = typeof vol4h === 'number' ? vol4h : 0;
-  if (v4h < PREP_MIN_VOL_4H || v1h < PREP_MIN_VOL_1H) return null;
-
-  // Fix 2: StochK extremo — no entrar cuando ya está sobrecomprado/sobrevendido
-  if (sk.k !== null) {
-    const prepLongStochOk  = sk.k < 70;
-    const prepShortStochOk = sk.k > 30;
-    const goingLong  = htf4h === 'bull';
-    const goingShort = htf4h === 'bear';
-    if (goingLong  && !prepLongStochOk)  return null;
-    if (goingShort && !prepShortStochOk) return null;
-  }
-
-  // 4H OBLIGATORIO para early warning también
-  const prepLong  = htf4h === 'bull' && (emaCrossingLong  || (rsiNearLong  && (sqz || volBuilding || stochCrossingLong)));
-  const prepShort = htf4h === 'bear' && (emaCrossingShort || (rsiNearShort && (sqz || volBuilding || stochCrossingShort)));
-
-  if (!prepLong && !prepShort) return null;
-
-  const direction = prepLong ? 'preparing_long' : 'preparing_short';
-
-  let triggers = [];
-  if (prepLong) {
-    if (emaCrossingLong)     triggers.push('EMA 9/21 cruzando ↑');
-    if (rsiNearLong)         triggers.push(`RSI ${r.toFixed(1)} → cruzando 50`);
-    if (sqz)                 triggers.push('BB squeeze → explosión inminente');
-    if (volBuilding)         triggers.push(`Vol ${vol.ratio.toFixed(1)}x construyendo`);
-    if (stochCrossingLong)   triggers.push('StochK cruzando ↑');
-  } else {
-    if (emaCrossingShort)    triggers.push('EMA 9/21 cruzando ↓');
-    if (rsiNearShort)        triggers.push(`RSI ${r.toFixed(1)} → cruzando 50`);
-    if (sqz)                 triggers.push('BB squeeze → explosión inminente');
-    if (volBuilding)         triggers.push(`Vol ${vol.ratio.toFixed(1)}x construyendo`);
-    if (stochCrossingShort)  triggers.push('StochK cruzando ↓');
-  }
-
-  return {
-    signal: direction,
-    triggers,
-    score: triggers.length,
-    price: p, ema9: e9, ema21: e21, ema50: e50,
-    rsi: r, stochK: sk.k, stochD: sk.d,
-    bb, vol, squeeze: sqz,
-    aboveVWAP: vwapCalc(candles) ? p > vwapCalc(candles) : null,
-    bbPos: bb ? (p - bb.lower) / (bb.upper - bb.lower) : 0.5,
-    pbPct: e9 ? Math.abs(p - e9) / e9 * 100 : 0,
-    atr: atrCalc(candles),
-    conds: triggers.map(t => ({ label: t, ok: true })),
-    volSpike: vol.ratio >= 2.0,
-    trendLongValid: false, trendShortValid: false
-  };
-}
-
-// ============================================================
-// EVAL PAIR (señales confirmadas)
-// ============================================================
+// Evaluación principal (15m) - la misma que usa el scanner
 function evalPair(closes, candles) {
   const p = closes[closes.length - 1];
   const e9 = ema(closes, 9), e21 = ema(closes, 21), e50 = ema(closes, 50);
@@ -689,665 +406,293 @@ function evalPair(closes, candles) {
   ];
   const tls = trendLongConds.filter(c => c.ok).length;
   const tss = trendShortConds.filter(c => c.ok).length;
-  const trendLongValid  = e9 > e21 && e21 > e50 && r >= 50 && r <= 70 && aboveVWAP === true && tls >= 6;
+  const trendLongValid = e9 > e21 && e21 > e50 && r >= 50 && r <= 70 && aboveVWAP === true && tls >= 6;
   const trendShortValid = e9 < e21 && e21 < e50 && r >= 30 && r <= 50 && aboveVWAP === false && tss >= 6;
   let signal = 'neutral', score = 0, conds = [];
-  if (lv && ls >= ss)         { signal = 'early_long';   score = ls;  conds = lConds; }
-  else if (sv && ss > ls)     { signal = 'early_short';  score = ss;  conds = sConds; }
-  else if (trendLongValid && !sv) { signal = 'trend_long';  score = tls; conds = trendLongConds; }
-  else if (trendShortValid && !lv){ signal = 'trend_short'; score = tss; conds = trendShortConds; }
-  else                        { signal = 'neutral';      score = Math.max(ls, ss, tls, tss); conds = ls >= ss ? lConds : sConds; }
+  if (lv && ls >= ss) { signal = 'early_long'; score = ls; conds = lConds; }
+  else if (sv && ss > ls) { signal = 'early_short'; score = ss; conds = sConds; }
+  else if (trendLongValid && !sv) { signal = 'trend_long'; score = tls; conds = trendLongConds; }
+  else if (trendShortValid && !lv) { signal = 'trend_short'; score = tss; conds = trendShortConds; }
+  else { signal = 'neutral'; score = Math.max(ls, ss, tls, tss); conds = ls >= ss ? lConds : sConds; }
   const pbPct = e9 ? Math.abs(p - e9) / e9 * 100 : 0;
   return { price: p, ema9: e9, ema21: e21, ema50: e50, rsi: r, stochK: sk.k, stochD: sk.d, bb, aboveVWAP, bbPos, vol, volSpike: vs, squeeze: sqz, signal, score, conds, atr: at, pbPct, trendLongValid, trendShortValid };
 }
 
-// ============================================================
-// FILTROS — 4H OBLIGATORIO + VOLUMEN MULTI-TF EN TODOS
-// ============================================================
-function isPreparing(card) {
-  return card.d.signal === 'preparing_long' || card.d.signal === 'preparing_short';
-}
-
-// FIX F (MODO AGRESIVO, paridad con scan.js) — antes esta comprobación
-// dependía únicamente de isPreparing() excluyendo el caso en isConfirmed().
-// Se añade un guard explícito por tipo de señal para que una preparing_*
-// nunca pueda evaluarse como confirmada/SUPER/ELITE, sin depender de que su
-// score máximo (5) se quede siempre por debajo del umbral de SUPER.
-function isConfirmedSignalType(signal) {
-  return signal === 'early_long' || signal === 'early_short' ||
-         signal === 'trend_long' || signal === 'trend_short';
-}
-
-// Validación de volumen multi-timeframe (umbral agresivo 0.7x, ver arriba).
-function mtfVolumeOk(card) {
-  const v1 = typeof card.vol1h === 'number' ? card.vol1h : 0;
-  const v4 = typeof card.vol4h === 'number' ? card.vol4h : 0;
-  return v1 >= MTF_MIN_VOL && v4 >= MTF_MIN_VOL;
-}
-
-// Espejo de mtfVolumeOk() para PREPARING (umbral agresivo 0.3x/0.5x),
-// usado para pintar el badge ✓/✗ en la tarjeta con el mismo criterio.
-function prepVolumeOk(card) {
-  const v1 = typeof card.vol1h === 'number' ? card.vol1h : 0;
-  const v4 = typeof card.vol4h === 'number' ? card.vol4h : 0;
-  return v1 >= PREP_MIN_VOL_1H && v4 >= PREP_MIN_VOL_4H;
-}
-
+// --------------------------------------------------------------
+// FILTROS CON 4H
+// --------------------------------------------------------------
 function isConfirmed(card) {
-  if (card.d.signal === 'neutral' || isPreparing(card)) return false;
-  if (!isConfirmedSignalType(card.d.signal)) return false; // FIX F
-  // 4H OBLIGATORIO
-  if (card.htf4h !== (card.d.signal.includes('long') ? 'bull' : 'bear')) return false;
-  const longOk  = card.d.signal.includes('long')  && card.htf === 'bull';
+  if (card.d.signal === 'neutral') return false;
+  const longOk = card.d.signal.includes('long') && card.htf === 'bull';
   const shortOk = card.d.signal.includes('short') && card.htf === 'bear';
-  if (!(longOk || shortOk)) return false;
-  if (!mtfVolumeOk(card)) return false;
-  return true;
+  return longOk || shortOk;
 }
 function isSuperSignal(card) {
   if (!isConfirmed(card)) return false;
-  // MODO AGRESIVO: score 9→7, vol 2.5x→1.8x
-  if (card.d.score < 7) return false;
-  if (card.d.vol.ratio < 1.8) return false;
-  return true;
+  if (card.d.score < 9) return false;
+  if (card.d.vol.ratio < 2.5) return false;
+  const aligned4h = (card.d.signal.includes('long') && card.htf4h === 'bull') || (card.d.signal.includes('short') && card.htf4h === 'bear');
+  return aligned4h;
 }
 function isEliteSignal(card) {
   if (!isSuperSignal(card)) return false;
   const isLong = card.d.signal.includes('long');
   const stoch = card.d.stochK;
   if (stoch === null) return false;
-  // MODO AGRESIVO: StochK 35/65→45/55, dist EMA9 1.5%→2.5%, RSI más ancho, SL 1.8%→2.5%
-  if (isLong && stoch > 45) return false;
-  if (!isLong && stoch < 55) return false;
-  if (card.d.pbPct > 2.5) return false;
+  if (isLong && stoch > 35) return false;
+  if (!isLong && stoch < 65) return false;
+  if (card.d.pbPct > 1.5) return false;
   const rsi = card.d.rsi;
-  if (isLong && (rsi < 35 || rsi > 72)) return false;
-  if (!isLong && (rsi < 28 || rsi > 65)) return false;
+  if (isLong && (rsi < 40 || rsi > 68)) return false;
+  if (!isLong && (rsi < 32 || rsi > 60)) return false;
   let slPct = 0;
-  if (card.d.bb) {
-    if (isLong) slPct = (card.d.price - card.d.bb.lower) / card.d.price * 100;
-    else slPct = (card.d.bb.upper - card.d.price) / card.d.price * 100;
-  } else slPct = 1.5;
-  if (slPct > 2.5) return false;
+  if (card.d.bb) { if (isLong) slPct = (card.d.price - card.d.bb.lower) / card.d.price * 100; else slPct = (card.d.bb.upper - card.d.price) / card.d.price * 100; }
+  else slPct = 1.5;
+  if (slPct > 1.8) return false;
   if (card.d.squeeze) return false;
   return true;
 }
 
-// FRESCO — filtro independiente basado en estructura + reacción a nivel + volumen real
-function isFresh(card) {
-  return !!card.fresh;
-}
-
-// ============================================================
-// 2 CAPAS — enfoque de traders reales: 1 timeframe para DIRECCIÓN
-// (4H, solo importa si es alcista/bajista, no si está "sano" o
-// extendido) + 1 timeframe para CALIDAD/ENTRADA (15M, aquí se
-// concentran todos los filtros: RSI, StochK, volumen, estructura).
-// El 1H deja de ser una puerta de bloqueo obligatoria.
-// ============================================================
-function isTwoLayer(card) {
-  if (card.d.signal === 'neutral') return false;
-  if (!isConfirmedSignalType(card.d.signal)) return false;
-  const dirLong = card.d.signal.includes('long');
-  const dir4hOk = dirLong ? card.htf4h === 'bull' : card.htf4h === 'bear';
-  if (!dir4hOk) return false; // única exigencia del 4H: dirección
-  if (card.d.score < 6) return false; // toda la calidad se exige en 15M
-  return true;
-}
-
-// 4H obligatorio para señales confirmadas (no preparing)
-function has4HAlignment(card) {
-  if (isPreparing(card)) return card.htf4h === (card.d.signal === 'preparing_long' ? 'bull' : 'bear');
-  if (card.d.signal === 'neutral') return false;
-  return card.htf4h === (card.d.signal.includes('long') ? 'bull' : 'bear');
-}
-
-// ============================================================
-// FIX G — extensión real de 1H/4H (nuevo)
-// El badge "✅ 4H+1H+15M ALINEADOS · Setup ideal" solo comprobaba
-// DIRECCIÓN (bull/bear) de 1H/4H, no si esos timeframes ya estaban
-// agotados (StochK/RSI en extremo, volumen 4H débil). Por eso una
-// tarjeta podía marcar "Setup ideal" con 1H/4H ya sobre-extendidos,
-// justo lo que evalCurrentState() revela luego al abrir el modal.
-// Esta función usa los mismos datos ya cacheados en fetchHTF()
-// (stoch1h/stoch4h) sin llamadas de red adicionales.
-// ============================================================
-function htfExtended(card) {
-  const isLong = card.d.signal.includes('long');
-  const s1 = card.stoch1h, s4 = card.stoch4h;
-  const v4 = typeof card.vol4h === 'number' ? card.vol4h : 0;
-  // Igual que evalCurrentState pero aplicado a 1H/4H, no solo al TF de la tarjeta.
-  if (isLong) {
-    if (s1 !== null && s1 !== undefined && s1 > 75) return true;
-    if (s4 !== null && s4 !== undefined && s4 > 75) return true;
-  } else {
-    if (s1 !== null && s1 !== undefined && s1 < 25) return true;
-    if (s4 !== null && s4 !== undefined && s4 < 25) return true;
-  }
-  if (v4 < MTF_MIN_VOL) return true; // 4H sin volumen real de continuación
-  return false;
-}
-
-// ============================================================
+// --------------------------------------------------------------
 // SONIDO Y NOTIFICACIONES
-// ============================================================
-function playBeep(type = 'normal') {
-  try {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const now = audioCtx.currentTime;
-    if (type === 'elite') {
-      [880, 1100].forEach((freq, i) => {
-        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.frequency.value = freq; gain.gain.setValueAtTime(0.3, now + i * 0.15);
-        gain.gain.exponentialRampToValueAtTime(0.00001, now + i * 0.15 + 0.2);
-        osc.start(now + i * 0.15); osc.stop(now + i * 0.15 + 0.2);
-      });
-    } else if (type === 'prep') {
-      const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-      osc.connect(gain); gain.connect(audioCtx.destination);
-      osc.frequency.value = 440; gain.gain.setValueAtTime(0.15, now);
-      gain.gain.exponentialRampToValueAtTime(0.00001, now + 0.3);
-      osc.start(now); osc.stop(now + 0.3);
-    } else {
-      const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-      osc.connect(gain); gain.connect(audioCtx.destination);
-      osc.frequency.value = 660; gain.gain.setValueAtTime(0.25, now);
-      gain.gain.exponentialRampToValueAtTime(0.00001, now + 0.2);
-      osc.start(now); osc.stop(now + 0.2);
-    }
-  } catch(e) { console.warn('Audio error'); }
-}
-function requestNotificationPermission() {
-  if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
-}
-function notify(title, body, isElite = false) {
-  if (!("Notification" in window) || Notification.permission !== "granted") return;
-  new Notification(title, { body });
-}
+// --------------------------------------------------------------
+function playBeep() {
+  try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); const now = audioCtx.currentTime; const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); osc.frequency.value = 880; gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.00001, now + 0.2); osc.start(now); osc.stop(now + 0.2); } catch (e) { console.warn("Audio error"); } }
+function requestNotificationPermission() { if ("Notification" in window && Notification.permission === "default") Notification.requestPermission(); }
+function notify(title, body, isElite = false) { if (!("Notification" in window) || Notification.permission !== "granted") return; const icon = isElite ? "https://cdn-icons-png.flaticon.com/512/1827/1827377.png" : "https://cdn-icons-png.flaticon.com/512/1865/1865262.png"; new Notification(title, { body, icon }); }
 function checkAndNotify(currentResults) {
   const now = Date.now(); if (now - lastNotificationTime < 20000) return;
   const eliteSignals = currentResults.filter(isEliteSignal).map(r => `${r.symbol}|${r.d.signal}|${r.d.score}`);
   const superSignals = currentResults.filter(isSuperSignal).map(r => `${r.symbol}|${r.d.signal}|${r.d.score}`);
-  const prepSignals  = currentResults.filter(isPreparing).filter(r => has4HAlignment(r)).map(r => `${r.symbol}|${r.d.signal}|${r.d.score}`);
-  const allStrong    = currentResults.filter(r => !r.d.signal.includes('neutral') && !isPreparing(r) && isConfirmed(r) && r.d.score >= 7).map(r => `${r.symbol}|${r.d.signal}|${r.d.score}`);
+  const allStrong = currentResults.filter(r => { if (r.d.signal === 'neutral') return false; return (isConfirmed(r) && r.d.score >= 7) || (r.d.vol.ratio >= 2.5 && r.d.score >= 7); }).map(r => `${r.symbol}|${r.d.signal}|${r.d.score}`);
   const newElite = eliteSignals.filter(s => !previousEliteSignals.includes(s));
   const newSuper = superSignals.filter(s => !previousSuperSignals.includes(s));
-  if (alertMode === 'elite' && newElite.length > 0) {
-    playBeep('elite'); const first = newElite[0].split('|');
-    notify(`👑 ELITE: ${first[0]}`, `${first[1]} · Score ${first[2]}`, true);
-    lastNotificationTime = now;
-  } else if (alertMode === 'super' && newSuper.length > 0 && newElite.length === 0) {
-    playBeep('normal'); const first = newSuper[0].split('|');
-    notify(`⭐ SUPER: ${first[0]}`, `${first[1]} · Score ${first[2]}`);
-    lastNotificationTime = now;
-  } else if (alertMode === 'all' && allStrong.filter(s => !previousAllStrong.includes(s)).length > 0 && newElite.length === 0 && newSuper.length === 0) {
-    playBeep('normal');
-    lastNotificationTime = now;
-  }
+  const newAllStrong = allStrong.filter(s => !previousAllStrong.includes(s));
+  if (alertMode === 'elite' && newElite.length > 0) { playBeep(); const first = newElite[0].split('|'); notify(`👑 ELITE: ${first[0]}`, newElite.length === 1 ? `${first[0]} · ${first[1]} · Score ${first[2]}` : `${newElite.length} nuevas señales elite`, true); lastNotificationTime = now; }
+  else if (alertMode === 'super' && newSuper.length > 0 && newElite.length === 0) { playBeep(); const first = newSuper[0].split('|'); notify(`⭐ SUPER: ${first[0]}`, newSuper.length === 1 ? `${first[0]} · ${first[1]} · Score ${first[2]}` : `${newSuper.length} nuevas super señales`, false); lastNotificationTime = now; }
+  else if (alertMode === 'all' && newAllStrong.length > 0 && newElite.length === 0 && newSuper.length === 0) { playBeep(); const first = newAllStrong[0].split('|'); notify(`🔔 Señal: ${first[0]}`, newAllStrong.length === 1 ? `${first[0]} · ${first[1]} · Score ${first[2]}` : `${newAllStrong.length} nuevas señales`, false); lastNotificationTime = now; }
   previousEliteSignals = eliteSignals; previousSuperSignals = superSignals; previousAllStrong = allStrong;
 }
 
-// ============================================================
-// HISTORIAL DE SEÑALES
-// ============================================================
-function addToHistory(results) {
-  const now = new Date();
-  const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-  results.forEach(r => {
-    if (r.d.signal === 'neutral') return;
-    if (!has4HAlignment(r)) return;
-
-    let tipo = '';
-    // FIX J — mismo orden de prioridad que el banner de la tarjeta
-    // (fresh > 2 capas > elite > super > preparing > conf), para que
-    // el historial no contradiga lo que la tarjeta muestra.
-    if (isFresh(r)) tipo = 'FRESCO';
-    else if (isTwoLayer(r)) tipo = '2 CAPAS';
-    else if (isEliteSignal(r)) tipo = 'ELITE';
-    else if (isSuperSignal(r)) tipo = 'SUPER';
-    else if (isPreparing(r)) tipo = 'PREPARING';
-    else if (isConfirmed(r)) tipo = 'CONF';
-    else return;
-
-    const key = `${r.symbol}|${r.d.signal}`;
-    const cutoff = Date.now() - 15 * 60 * 1000;
-    const exists = signalHistory.find(h => h.key === key && h.ts > cutoff);
-    if (exists) return;
-
-    signalHistory.unshift({
-      key, ts: Date.now(), time: timeStr,
-      symbol: r.symbol,
-      tipo,
-      signal: r.d.signal,
-      score: r.d.score,
-      htf4h: r.htf4h,
-      htf1h: r.htf,
-      vol: r.d.vol.ratio,
-      vol1h: typeof r.vol1h === 'number' ? r.vol1h : null,
-      vol4h: typeof r.vol4h === 'number' ? r.vol4h : null,
-      rsi: r.d.rsi
-    });
-  });
-
-  if (signalHistory.length > 50) signalHistory = signalHistory.slice(0, 50);
-  renderHistory();
-}
-
-function renderHistory() {
-  const tbody = document.getElementById('histTbody');
-  const empty = document.getElementById('histEmpty');
-  const table = document.getElementById('histTable');
-  const meta  = document.getElementById('histMeta');
-
-  meta.textContent = `${signalHistory.length} señal${signalHistory.length !== 1 ? 'es' : ''}`;
-
-  if (signalHistory.length === 0) {
-    empty.style.display = 'block';
-    table.style.display = 'none';
-    return;
-  }
-  empty.style.display = 'none';
-  table.style.display = 'table';
-
-  tbody.innerHTML = signalHistory.map(h => {
-    const tipoClass = h.tipo === 'ELITE' ? 'h-elite' : h.tipo === 'SUPER' ? 'h-super' : h.tipo === 'PREPARING' ? 'h-prep' : '';
-    const tipoStyle = h.tipo === 'FRESCO' ? 'color:#4ade80;' : h.tipo === '2 CAPAS' ? 'color:#38bdf8;' : '';
-    const dirClass  = h.signal.includes('long') ? 'h-long' : 'h-short';
-    const dirLabel  = h.signal === 'preparing_long' ? '⏳ PREP LONG'
-                    : h.signal === 'preparing_short' ? '⏳ PREP SHORT'
-                    : h.signal === 'early_long'  ? '▲ EARLY LONG'
-                    : h.signal === 'early_short' ? '▼ EARLY SHORT'
-                    : h.signal === 'trend_long'  ? '📈 TREND LONG'
-                    : '📉 TREND SHORT';
-    const h4Label = h.htf4h === 'bull' ? '▲' : h.htf4h === 'bear' ? '▼' : '–';
-    const h1Label = h.htf1h === 'bull' ? '▲' : h.htf1h === 'bear' ? '▼' : '–';
-    const h4Color = h.htf4h === 'bull' ? 'var(--long)' : h.htf4h === 'bear' ? 'var(--short)' : 'var(--muted)';
-    const h1Color = h.htf1h === 'bull' ? 'var(--long)' : h.htf1h === 'bear' ? 'var(--short)' : 'var(--muted)';
-    const vol1hStr = h.vol1h !== null ? `${h.vol1h.toFixed(1)}x` : '–';
-    const vol4hStr = h.vol4h !== null ? `${h.vol4h.toFixed(1)}x` : '–';
-    const isPrepRow = h.tipo === 'PREPARING';
-    const vol1hMin = isPrepRow ? PREP_MIN_VOL_1H : MTF_MIN_VOL;
-    const vol4hMin = isPrepRow ? PREP_MIN_VOL_4H : MTF_MIN_VOL;
-    const vol1hColor = h.vol1h !== null && h.vol1h < vol1hMin ? 'var(--short)' : 'inherit';
-    const vol4hColor = h.vol4h !== null && h.vol4h < vol4hMin ? 'var(--short)' : 'inherit';
-    return `<tr>
-      <td style="color:var(--muted)">${h.time}</td>
-      <td style="font-weight:700">${h.symbol.replace('USDT','/USDT')}</td>
-      <td class="${tipoClass}" style="font-weight:700;${tipoStyle}">${h.tipo}</td>
-      <td class="${dirClass}">${dirLabel}</td>
-      <td class="h-score" style="color:var(--accent)">${h.score}/9</td>
-      <td style="color:${h4Color};font-weight:700">${h4Label} 4H</td>
-      <td style="color:${h1Color};font-weight:700">${h1Label} 1H</td>
-      <td style="color:var(--vol)">${h.vol.toFixed(1)}x</td>
-      <td style="color:${vol1hColor}">${vol1hStr}</td>
-      <td style="color:${vol4hColor}">${vol4hStr}</td>
-      <td>${h.rsi.toFixed(1)}</td>
-    </tr>`;
-  }).join('');
-}
-
-function clearHistory() {
-  signalHistory = [];
-  renderHistory();
-}
-
-function toggleHistory() {
-  historyOpen = !historyOpen;
-  document.getElementById('historyBody').classList.toggle('collapsed', !historyOpen);
-  document.getElementById('histToggle').textContent = historyOpen ? '▲' : '▼';
-}
-
-// ============================================================
-// RIESGO
-// ============================================================
-function getP() {
-  return {
-    capital: parseFloat(document.getElementById('capInput').value) || 5000,
-    riskPct: parseFloat(document.getElementById('riskInput').value) || 1,
-    leverage: parseFloat(document.getElementById('levInput').value) || 10
-  };
-}
-function updateCap() {
-  const p = getP();
-  const riskUSDT = p.capital * p.riskPct / 100;
-  const estimatedMargin = riskUSDT / 0.01 / p.leverage;
-  document.getElementById('capInfo').innerHTML = `Riesgo: $${riskUSDT.toFixed(2)} · Margen estimado: $${estimatedMargin.toFixed(2)}`;
-}
-function fmt(v) { return v < 0.01 ? v.toFixed(6) : v < 1 ? v.toFixed(4) : v < 100 ? v.toFixed(3) : v.toFixed(2); }
-function cStr(n) { return n < 1 ? n.toFixed(2) : n < 1000 ? Math.round(n).toString() : n < 1000000 ? (n/1000).toFixed(0)+'K' : (n/1000000).toFixed(2)+'M'; }
-
-function calcRisk(price, dir, bb, at) {
-  const p = getP();
-  const isLong = dir === 'long' || dir === 'trend_long' || dir === 'preparing_long';
-  let slDist = isLong
-    ? Math.max(bb ? Math.min(price - bb.lower, at * 1.5) : at * 1.5, price * 0.004)
-    : Math.max(bb ? Math.min(bb.upper - price, at * 1.5) : at * 1.5, price * 0.004);
-  const slDistPct = slDist / price;
-  const riskUSDT = p.capital * p.riskPct / 100;
-  const positionSize = riskUSDT / slDistPct;
-  const margin = positionSize / p.leverage;
-  const contracts = positionSize / price;
-  const sl  = isLong ? price - slDist : price + slDist;
-  const tp1 = isLong ? price + slDist * 1.5 : price - slDist * 1.5;
-  const tp2 = isLong ? price + slDist * 2.5 : price - slDist * 2.5;
-  return { sl, tp1, tp2, slPct: slDistPct * 100, contracts, margin, riskUSDT, leverage: p.leverage };
-}
-
-// ============================================================
-// MODAL — evaluar estado actual
-// FIX G — umbral de volumen alineado con MTF_MIN_VOL (modo agresivo,
-// antes hardcodeado a 1.0x, inconsistente con el resto del sistema).
-// ============================================================
-function evalCurrentState(d, htf1h, htf4h, isLong) {
-  const { rsi, stochK, pbPct: pb, vol: volObj, price, ema9, ema21, ema50 } = d;
-  const vol = volObj.ratio;
-  let problems = 0; const checks = [];
-  if (isLong) {
-    const c1 = rsi >= 40 && rsi <= 70; checks.push({ label: 'RSI zona long (40-70)', ok: c1 }); if (!c1) problems++;
-    const c2 = stochK !== null ? stochK < 75 : true; checks.push({ label: 'StochK < 75', ok: c2 }); if (!c2) problems++;
-    const c3 = pb < 1.5; checks.push({ label: 'Dist EMA9 < 1.5%', ok: c3 }); if (!c3) problems++;
-    const c4 = price >= ema9; checks.push({ label: 'Precio > EMA9', ok: c4 }); if (!c4) problems++;
-    const c5 = ema21 > ema50; checks.push({ label: 'EMA21 > EMA50', ok: c5 }); if (!c5) problems++;
-    const c6 = vol >= MTF_MIN_VOL; checks.push({ label: `Vol ≥ ${MTF_MIN_VOL}x`, ok: c6 }); if (!c6) problems++;
-    const c7 = htf1h === 'bull'; checks.push({ label: '1H alcista', ok: c7 }); if (!c7) problems++;
-    const c8 = htf4h === 'bull'; checks.push({ label: '4H alcista ✦', ok: c8 }); if (!c8) problems++;
-  } else {
-    const c1 = rsi >= 30 && rsi <= 60; checks.push({ label: 'RSI zona short (30-60)', ok: c1 }); if (!c1) problems++;
-    const c2 = stochK !== null ? stochK > 25 : true; checks.push({ label: 'StochK > 25', ok: c2 }); if (!c2) problems++;
-    const c3 = pb < 1.5; checks.push({ label: 'Dist EMA9 < 1.5%', ok: c3 }); if (!c3) problems++;
-    const c4 = price <= ema9; checks.push({ label: 'Precio < EMA9', ok: c4 }); if (!c4) problems++;
-    const c5 = ema21 < ema50; checks.push({ label: 'EMA21 < EMA50', ok: c5 }); if (!c5) problems++;
-    const c6 = vol >= MTF_MIN_VOL; checks.push({ label: `Vol ≥ ${MTF_MIN_VOL}x`, ok: c6 }); if (!c6) problems++;
-    const c7 = htf1h === 'bear'; checks.push({ label: '1H bajista', ok: c7 }); if (!c7) problems++;
-    const c8 = htf4h === 'bear'; checks.push({ label: '4H bajista ✦', ok: c8 }); if (!c8) problems++;
-  }
-  let recommendation, colorClass, msg;
-  if (problems === 0)     { recommendation = '✅ Ideal';   colorClass = 'keep';  msg = 'Todos los indicadores alineados. Buena entrada.'; }
-  else if (problems <= 2) { recommendation = 'Mantener';  colorClass = 'keep';  msg = 'Estado sólido. Opera con normalidad.'; }
-  else if (problems <= 4) { recommendation = 'Vigilar';   colorClass = 'watch'; msg = 'Varios indicadores débiles. Reduce tamaño o ajusta SL.'; }
-  else                    { recommendation = 'No entrar'; colorClass = 'close'; msg = 'Condiciones desfavorables. Espera mejor setup.'; }
-  return { problems, checks, recommendation, colorClass, msg, rsi, stochK, pb, vol, price, ema9, ema21, ema50, htf1h, htf4h };
-}
-
-// ============================================================
-// MODAL
-// ============================================================
-let modalSymbol = null, modalCardData = null, modalCurrentTF = '15m';
-const TF_LIMIT = { '15m': 150, '1h': 100, '4h': 50 };
-
-async function openChart(symbol, cardData) {
-  modalSymbol = symbol; modalCardData = cardData; modalCurrentTF = '15m';
-  const modal = document.getElementById('chartModal');
-  const statusPanel = document.getElementById('statusPanel');
-  ['tfBtn15','tfBtn1h','tfBtn4h'].forEach(id => document.getElementById(id).classList.remove('active'));
-  document.getElementById('tfBtn15').classList.add('active');
-  statusPanel.innerHTML = `<span class="loading-text">⏳ Cargando datos 15M...</span>`;
-  document.getElementById('tvIframe').src = '';
-  document.getElementById('chartLoader').style.display = 'block';
-  _loadTVChart(symbol, '15');
-  document.getElementById('modalTitle').textContent = `📊 ${symbol.replace('USDT','/USDT')} · 15M`;
-  modal.classList.add('open');
-  setTimeout(() => { document.getElementById('chartLoader').style.display = 'none'; }, 2500);
-  await _updateStatusPanel(symbol, cardData, '15m');
-}
-async function switchModalTF(tf, tvInterval) {
-  if (!modalSymbol) return;
-  modalCurrentTF = tf;
-  ['tfBtn15','tfBtn1h','tfBtn4h'].forEach(id => document.getElementById(id).classList.remove('active'));
-  const btnMap = { '15m':'tfBtn15', '1h':'tfBtn1h', '4h':'tfBtn4h' };
-  document.getElementById(btnMap[tf]).classList.add('active');
-  document.getElementById('modalTitle').textContent = `📊 ${modalSymbol.replace('USDT','/USDT')} · ${tf.toUpperCase()}`;
-  _loadTVChart(modalSymbol, tvInterval);
-  await _updateStatusPanel(modalSymbol, modalCardData, tf);
-}
-function _loadTVChart(symbol, tvInterval) {
-  const url = `https://www.tradingview.com/widgetembed/?frameElementId=tv_chart&symbol=${encodeURIComponent('BINANCE:'+symbol)}&interval=${tvInterval}&theme=dark&style=1&locale=es&hide_side_toolbar=0&allow_symbol_change=0&save_image=0&hide_top_toolbar=0&withdateranges=1`;
-  document.getElementById('tvIframe').src = url;
-}
-async function _updateStatusPanel(symbol, cardData, tf) {
-  const statusPanel = document.getElementById('statusPanel');
-  const tfLoading = document.getElementById('tfLoading');
-  statusPanel.innerHTML = `<span class="loading-text">⏳ Descargando velas ${tf.toUpperCase()} desde Binance...</span>`;
-  tfLoading.style.display = 'inline';
+// --------------------------------------------------------------
+// FUNCIÓN PARA OBTENER DATOS EN TIEMPO REAL Y COMPARAR
+// --------------------------------------------------------------
+async function fetchCurrentData(symbol) {
   try {
-    const limit = TF_LIMIT[tf] || 150;
-    const r = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${tf}&limit=${limit}`, { cache: 'no-store' });
-    if (!r.ok) throw new Error('API error');
-    const candles = await r.json();
-    const closes = candles.map(c => parseFloat(c[4]));
-    const d = evalPair(closes, candles);
-    if (!d) throw new Error('evalPair failed');
-    let htf1h = 'neutral', htf4h = 'neutral';
-    const [r1h, r4h] = await Promise.all([
-      fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=100`, { cache: 'no-store' }),
-      fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=4h&limit=50`,  { cache: 'no-store' })
+    const [r15, r1h, r4h] = await Promise.all([
+      fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=15m&limit=150`),
+      fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=100`),
+      fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=4h&limit=50`)
     ]);
-    if (r1h.ok) { const c1h = await r1h.json(); htf1h = trendGeneric(c1h); }
-    if (r4h.ok) { const c4h = await r4h.json(); htf4h = trendGeneric(c4h); }
-    // FIX K — cuando d.signal es 'neutral' (ej. señales FRESCO puras),
-    // antes se asumía dirección corta por defecto sin motivo, evaluando
-    // el modal con la dirección equivocada. Ahora usa fresh.signal si
-    // existe antes de caer al fallback.
-    let isLong;
-    if (cardData && cardData.d && cardData.d.signal && cardData.d.signal !== 'neutral') {
-      isLong = cardData.d.signal.includes('long');
-    } else if (cardData && cardData.fresh && cardData.fresh.signal) {
-      isLong = cardData.fresh.signal.includes('long');
-    } else {
-      isLong = true;
-    }
-    const state = evalCurrentState(d, htf1h, htf4h, isLong);
-    const rsiColor   = (isLong && (state.rsi > 70 || state.rsi < 40)) ? 'bad' : (!isLong && (state.rsi < 30 || state.rsi > 60)) ? 'bad' : 'good';
-    const stochColor = state.stochK !== null ? ((isLong && state.stochK > 75) || (!isLong && state.stochK < 25) ? 'bad' : 'good') : 'warn';
-    const pbColor    = state.pb > 1.5 ? 'bad' : state.pb > 0.8 ? 'warn' : 'good';
-    const volColor   = state.vol < MTF_MIN_VOL ? 'bad' : state.vol >= 2.0 ? 'good' : 'warn';
-    const htfOk      = isLong ? (htf1h === 'bull' && htf4h === 'bull') : (htf1h === 'bear' && htf4h === 'bear');
-    const htfPartial = isLong ? (htf1h === 'bull' || htf4h === 'bull') : (htf1h === 'bear' || htf4h === 'bear');
-    const htfStatus  = htfOk ? '🟢 4H+1H OK' : htfPartial ? '🟡 Parcial' : '🔴 En contra';
-    const probColor  = state.problems <= 2 ? 'good' : state.problems <= 4 ? 'warn' : 'bad';
-    const checkHTML = state.checks.map(c =>
-      `<span style="font-size:9px;padding:1px 6px;border-radius:10px;font-family:'Space Mono',monospace;
-        background:${c.ok ? 'rgba(0,255,136,0.08)' : 'rgba(255,51,102,0.08)'};
-        color:${c.ok ? 'var(--long)' : 'var(--short)'};
-        border:1px solid ${c.ok ? 'rgba(0,255,136,0.2)' : 'rgba(255,51,102,0.2)'}">${c.ok ? '✓' : '✗'} ${c.label}</span>`
-    ).join('');
-    const ts = new Date().toLocaleTimeString('es-ES');
-    statusPanel.innerHTML = `
-      <div class="status-item"><span class="label">Precio:</span><span class="value">${fmt(state.price)}</span></div>
-      <div class="status-item"><span class="label">RSI ${tf.toUpperCase()}:</span><span class="value ${rsiColor}">${state.rsi.toFixed(1)}</span></div>
-      <div class="status-item"><span class="label">StochK:</span><span class="value ${stochColor}">${state.stochK !== null ? state.stochK.toFixed(1) : '–'}</span></div>
-      <div class="status-item"><span class="label">Dist EMA9:</span><span class="value ${pbColor}">${state.pb.toFixed(2)}%</span></div>
-      <div class="status-item"><span class="label">Vol:</span><span class="value ${volColor}">${state.vol.toFixed(1)}x</span></div>
-      <div class="status-item"><span class="label">4H+1H:</span><span class="value">${htfStatus}</span></div>
-      <div class="status-item"><span class="label">Fallos:</span><span class="value ${probColor}">${state.problems}/8</span></div>
-      <div class="recommendation ${state.colorClass}">${state.recommendation}</div>
-      <div style="width:100%;display:flex;flex-wrap:wrap;gap:3px;margin-top:6px;">${checkHTML}</div>
-      <div style="width:100%;font-size:9px;color:var(--muted);margin-top:4px;">${state.msg} · <span style="color:var(--accent)">⏱ ${ts}</span></div>
-    `;
-  } catch(e) {
-    statusPanel.innerHTML = `<span class="loading-text">⚠️ Error descargando datos ${tf.toUpperCase()}.</span>`;
+    if (!r15.ok || !r1h.ok || !r4h.ok) throw new Error();
+    const [c15, c1h, c4h] = await Promise.all([r15.json(), r1h.json(), r4h.json()]);
+    const closes = c15.map(c => parseFloat(c[4]));
+    const d = evalPair(closes, c15);
+    if (!d) throw new Error();
+    const htf1h = trendGeneric(c1h);
+    const htf4h = trendGeneric(c4h);
+    return { d, htf: htf1h, htf4h };
+  } catch (e) {
+    console.error('Error fetching current data', e);
+    return null;
   }
-  tfLoading.style.display = 'none';
 }
+
+function compareState(entry, current) {
+  if (!entry || !current) return { recommendation: 'error', msg: 'No se pudieron obtener los datos actuales' };
+  const diffPrice = ((current.d.price - entry.d.price) / entry.d.price * 100);
+  const diffRsi = current.d.rsi - entry.d.rsi;
+  const diffStoch = (current.d.stochK !== null && entry.d.stochK !== null) ? current.d.stochK - entry.d.stochK : 0;
+  const diffPb = current.d.pbPct - entry.d.pbPct;
+  const volRatio = current.d.vol.ratio;
+  const isLong = entry.d.signal.includes('long');
+  // Evaluar condiciones
+  let problems = 0;
+  // 1. Precio: si ha subido más de 2% o bajado más de 1% desde entrada (para long)
+  if (isLong && diffPrice > 2) { /* ok, sigue subiendo */ } else if (isLong && diffPrice < -0.5) { problems++; }
+  // 2. RSI: si se ha ido a >70 (sobrecompra) o <40 (perdiendo impulso)
+  if (isLong && current.d.rsi > 70) problems++;
+  if (isLong && current.d.rsi < 40) problems++;
+  // 3. StochK: si ha subido por encima de 70 (sobrecompra) para long
+  if (isLong && current.d.stochK !== null && current.d.stochK > 70) problems++;
+  // 4. Distancia EMA9: si se ha alejado más de 1.5% o está por debajo de EMA9
+  if (isLong && current.d.pbPct > 1.5) problems++;
+  if (isLong && current.d.price < current.d.ema9) problems++;
+  // 5. Volumen: si ha bajado mucho (<1.0x) puede indicar pérdida de interés
+  if (volRatio < 1.0) problems++;
+  // 6. Tendencia 1H y 4H: si han cambiado a neutral o contrario
+  if (isLong && (current.htf !== 'bull' || current.htf4h !== 'bull')) problems += 2;
+  // Decisión
+  let recommendation, colorClass, msg;
+  if (problems <= 1) {
+    recommendation = 'Mantener';
+    colorClass = 'keep';
+    msg = 'La operación sigue en buenas condiciones.';
+  } else if (problems <= 3) {
+    recommendation = 'Vigilar';
+    colorClass = 'watch';
+    msg = 'Algunos indicadores han empeorado. Ajusta stop o reduce tamaño.';
+  } else {
+    recommendation = 'Cerrar';
+    colorClass = 'close';
+    msg = 'La operación ya no es válida. Considera salir.';
+  }
+  // Mostrar diferencias clave
+  const diffInfo = {
+    priceChange: diffPrice,
+    rsiChange: diffRsi,
+    stochChange: diffStoch,
+    pbChange: diffPb,
+    currentPrice: current.d.price,
+    entryPrice: entry.d.price,
+    currentRsi: current.d.rsi,
+    entryRsi: entry.d.rsi,
+    currentStoch: current.d.stochK,
+    entryStoch: entry.d.stochK,
+    currentPb: current.d.pbPct,
+    entryPb: entry.d.pbPct,
+    volRatio: volRatio,
+    currentHtf: current.htf,
+    currentHtf4h: current.htf4h,
+    recommendation,
+    colorClass,
+    msg
+  };
+  return diffInfo;
+}
+
+// --------------------------------------------------------------
+// ABRIR GRÁFICO CON COMPARATIVA
+// --------------------------------------------------------------
+async function openChart(symbol, cardData) {
+  const modal = document.getElementById('chartModal');
+  const iframe = document.getElementById('tvIframe');
+  const title = document.getElementById('modalTitle');
+  const statusPanel = document.getElementById('statusPanel');
+  
+  // Mostrar panel de carga
+  statusPanel.innerHTML = `<span class="loading-text">⏳ Obteniendo datos en tiempo real para comparar...</span>`;
+  
+  // Limpiar iframe anterior
+  iframe.src = '';
+  document.querySelector('.chart-loader').style.display = 'block';
+  
+  // Construir URL del gráfico
+  const symbolClean = symbol.replace('USDT', 'USDT');
+  const url = `https://s.tradingview.com/widgetembed/?frameElementId=tradingview_widget&symbol=BINANCE%3A${symbolClean}&interval=15&theme=dark&style=1&locale=es&saveimage=1&toolbarbg=f1f3f6&studies=[]`;
+  iframe.src = url;
+  title.textContent = `📊 ${symbolClean.replace('USDT', '/USDT')}`;
+  modal.classList.add('open');
+  
+  // Ocultar loader del gráfico tras 2s
+  setTimeout(() => { document.querySelector('.chart-loader').style.display = 'none'; }, 2000);
+  
+  // Obtener datos actuales y comparar
+  const currentData = await fetchCurrentData(symbol);
+  if (currentData && cardData) {
+    const comparison = compareState(cardData, currentData);
+    // Construir HTML del panel
+    const priceColor = comparison.priceChange > 0 ? 'good' : (comparison.priceChange < -0.5 ? 'bad' : 'warn');
+    const rsiColor = (comparison.currentRsi > 70 || comparison.currentRsi < 40) ? 'bad' : 'good';
+    const stochColor = (comparison.currentStoch !== null && comparison.currentStoch > 70) ? 'bad' : 'good';
+    const pbColor = (comparison.currentPb > 1.5) ? 'bad' : (comparison.currentPb > 0.8 ? 'warn' : 'good');
+    const htfStatus = (comparison.currentHtf === 'bull' && comparison.currentHtf4h === 'bull') ? '🟢' : (comparison.currentHtf === 'bull' || comparison.currentHtf4h === 'bull') ? '🟡' : '🔴';
+    const recClass = comparison.colorClass;
+    const recLabel = comparison.recommendation;
+    
+    statusPanel.innerHTML = `
+      <div class="status-item"><span class="label">Precio:</span> <span class="value ${priceColor}">${comparison.currentPrice.toFixed(4)} (${comparison.priceChange > 0 ? '+' : ''}${comparison.priceChange.toFixed(2)}%)</span></div>
+      <div class="status-item"><span class="label">RSI:</span> <span class="value ${rsiColor}">${comparison.currentRsi.toFixed(1)} (${comparison.rsiChange > 0 ? '+' : ''}${comparison.rsiChange.toFixed(1)})</span></div>
+      <div class="status-item"><span class="label">StochK:</span> <span class="value ${stochColor}">${comparison.currentStoch !== null ? comparison.currentStoch.toFixed(1) : '–'} (${comparison.stochChange > 0 ? '+' : ''}${comparison.stochChange.toFixed(1)})</span></div>
+      <div class="status-item"><span class="label">PB EMA9:</span> <span class="value ${pbColor}">${comparison.currentPb.toFixed(2)}% (${comparison.pbChange > 0 ? '+' : ''}${comparison.pbChange.toFixed(2)}%)</span></div>
+      <div class="status-item"><span class="label">Vol ratio:</span> <span class="value">${comparison.volRatio.toFixed(1)}x</span></div>
+      <div class="status-item"><span class="label">Tendencia 1H/4H:</span> <span class="value">${htfStatus}</span></div>
+      <div class="recommendation ${recClass}">${recLabel}</div>
+      <div style="width:100%;font-size:9px;color:var(--muted);margin-top:4px;">${comparison.msg}</div>
+    `;
+  } else {
+    statusPanel.innerHTML = `<span class="loading-text">⚠️ No se pudo obtener la comparativa en tiempo real. Los datos mostrados son del último escaneo.</span>`;
+  }
+}
+
 function closeChart(event) {
   if (event && event.target !== event.currentTarget) return;
-  document.getElementById('chartModal').classList.remove('open');
+  const modal = document.getElementById('chartModal');
+  modal.classList.remove('open');
   document.getElementById('tvIframe').src = '';
-  modalSymbol = null; modalCardData = null;
 }
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    document.getElementById('chartModal').classList.remove('open');
-    document.getElementById('tvIframe').src = '';
-    modalSymbol = null; modalCardData = null;
-  }
-});
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeChart({ target: document.getElementById('chartModal'), currentTarget: document.getElementById('chartModal') }); });
 
-// ============================================================
-// RENDER TARJETAS
-// ============================================================
-const cardDataStore = {};
-
-function renderCard(symbol, d, htf, htf4h, delay, vol1h, vol4h, stoch1h, stoch4h, fresh) {
-  const cardObj = { symbol, d, htf, htf4h, vol1h, vol4h, stoch1h, stoch4h, fresh };
-  const isElite = isEliteSignal(cardObj);
-  const isPrep  = d.signal === 'preparing_long' || d.signal === 'preparing_short';
-  const isConf  = !isPrep && isConfirmed(cardObj);
-  const aligned4h = htf4h === (d.signal.includes('long') ? 'bull' : 'bear');
-  const tripleAligned = isConf && aligned4h;
-  const isTwoL = isTwoLayer(cardObj);
-  // FIX G — el badge "Setup ideal" ahora exige además que 1H/4H no estén
-  // ya extendidos (StochK/RSI en extremo, vol 4H débil). Antes solo
-  // miraba dirección (bull/bear), por eso podía marcar "ideal" con el
-  // movimiento ya agotado en timeframes superiores.
-  const extended = tripleAligned && htfExtended(cardObj);
-  const volMtfOk = mtfVolumeOk(cardObj);
-  const prepVolOk = isPrep ? prepVolumeOk(cardObj) : true;
-
-  const col = d.signal === 'early_long'    ? '#f59e0b'
-            : d.signal === 'early_short'   ? '#f97316'
-            : d.signal === 'trend_long'    ? '#22d3ee'
-            : d.signal === 'trend_short'   ? '#f43f5e'
-            : isPrep                       ? 'var(--preparing)'
-            : '#64748b';
-
-  const sigLabel = d.signal === 'early_long'       ? '▲ EARLY LONG'
-                 : d.signal === 'early_short'      ? '▼ EARLY SHORT'
-                 : d.signal === 'trend_long'       ? '📈 TREND LONG'
-                 : d.signal === 'trend_short'      ? '📉 TREND SHORT'
-                 : d.signal === 'preparing_long'   ? '⏳ PREP LONG'
-                 : d.signal === 'preparing_short'  ? '⏳ PREP SHORT'
-                 : '— NEUTRAL';
-
+// --------------------------------------------------------------
+// HELPERS, RIESGO Y RENDER
+// --------------------------------------------------------------
+function getP() { return { capital: parseFloat(document.getElementById('capInput').value) || 5000, riskPct: parseFloat(document.getElementById('riskInput').value) || 1, leverage: parseFloat(document.getElementById('levInput').value) || 10 }; }
+function updateCap() { const p = getP(); document.getElementById('capInfo').innerHTML = `Riesgo: $${(p.capital * p.riskPct / 100).toFixed(2)} · Margen: $${(p.capital * 0.20).toFixed(2)}`; }
+function fmt(v) { return v < 0.01 ? v.toFixed(6) : v < 1 ? v.toFixed(4) : v < 100 ? v.toFixed(3) : v.toFixed(2); }
+function cStr(n) { return n < 1 ? n.toFixed(2) : n < 1000 ? Math.round(n).toString() : n < 1000000 ? (n / 1000).toFixed(0) + 'K' : (n / 1000000).toFixed(2) + 'M'; }
+function calcRisk(price, dir, bb, at) {
+  const p = getP(); let slD = dir === 'long' || dir === 'trend_long' ? Math.max(bb ? Math.min(price - bb.lower, at * 1.5) : at * 1.5, price * 0.004) : Math.max(bb ? Math.min(bb.upper - price, at * 1.5) : at * 1.5, price * 0.004);
+  const isLong = dir === 'long' || dir === 'trend_long'; const sl = isLong ? price - slD : price + slD; const tp1 = isLong ? price + slD * 1.5 : price - slD * 1.5; const tp2 = isLong ? price + slD * 2.5 : price - slD * 2.5; const margin = p.capital * 0.20; const contracts = (margin * p.leverage) / price; return { sl, tp1, tp2, slPct: (slD / price) * 100, contracts, margin, riskUSDT: p.capital * p.riskPct / 100, leverage: p.leverage };
+}
+function renderCard(symbol, d, htf, htf4h, delay) {
+  const isElite = isEliteSignal({ symbol, d, htf, htf4h });
+  const col = d.signal === 'early_long' ? '#f59e0b' : d.signal === 'early_short' ? '#f97316' : d.signal === 'trend_long' ? '#22d3ee' : d.signal === 'trend_short' ? '#f43f5e' : '#64748b';
+  const sigLabel = d.signal === 'early_long' ? '▲ EARLY LONG' : d.signal === 'early_short' ? '▼ EARLY SHORT' : d.signal === 'trend_long' ? '📈 TREND LONG' : d.signal === 'trend_short' ? '📉 TREND SHORT' : '— NEUTRAL';
+  const isConf = (d.signal.includes('long') && htf === 'bull') || (d.signal.includes('short') && htf === 'bear');
   let banner = '';
-  const alignedButVolFails = !isPrep && d.signal !== 'neutral' && aligned4h &&
-    ((d.signal.includes('long') && htf === 'bull') || (d.signal.includes('short') && htf === 'bear')) &&
-    !volMtfOk;
-
-  if (fresh) {
-    const dir = fresh.signal === 'fresh_long' ? 'LONG' : 'SHORT';
-    banner = `<div class="banner" style="background:rgba(74,222,128,0.15);border-color:#4ade80;color:#4ade80;font-weight:700;text-align:center;">🌱 FRESCO ${dir} · Rechazo en nivel $${fmt(fresh.level)} · Estructura 4H + Volumen real</div>`;
-  } else if (isTwoL) {
-    banner = `<div class="banner" style="background:rgba(56,189,248,0.15);border-color:#38bdf8;color:#38bdf8;font-weight:700;text-align:center;">🎯 2 CAPAS · 4H solo dirección (sin exigir salud) · 15M calidad ${d.score}/9</div>`;
-  } else if (isElite) {
-    banner = `<div class="banner b-elite">👑 ELITE · Score ${d.score}/9 · Vol 15M ${d.vol.ratio.toFixed(1)}x · Vol 1H ${(vol1h||0).toFixed(1)}x · Vol 4H ${(vol4h||0).toFixed(1)}x · 4H+1H+15M PERFECTOS</div>`;
-  } else if (isPrep) {
-    const dir = d.signal === 'preparing_long' ? 'LONG' : 'SHORT';
-    banner = `<div class="banner b-preparing">⏳ PREPARING ${dir} · 4H ALINEADO · Vol 1H ${(vol1h||0).toFixed(1)}x · Vol 4H ${(vol4h||0).toFixed(1)}x · ${d.triggers ? d.triggers.slice(0,2).join(' · ') : 'Señal a punto de formarse'}</div>`;
-  } else if (alignedButVolFails) {
-    const dir = d.signal === 'trend_long' || d.signal === 'early_long' ? 'ALCISTA' : 'BAJISTA';
-    banner = `<div class="banner b-volwarn">⚠ 4H+1H ALINEADOS PERO VOL BAJO · Vol 1H ${(vol1h||0).toFixed(1)}x / Vol 4H ${(vol4h||0).toFixed(1)}x (mín ${MTF_MIN_VOL}x) · No es ELITE ni SUPER</div>`;
-  } else if (tripleAligned && extended) {
-    // FIX G — nuevo estado: dirección alineada pero 1H/4H ya extendidos
-    banner = `<div class="banner b-volwarn">⚠ 4H+1H ALINEADOS EN DIRECCIÓN, PERO YA EXTENDIDOS (StochK/Vol4H débil) · Posible entrada tardía · Revisa 1H/4H antes de entrar</div>`;
-  } else if (tripleAligned) {
-    banner = `<div class="banner b-elite" style="background:rgba(34,211,238,0.15);border-color:#22d3ee;color:#22d3ee;">✅ 4H+1H+15M ALINEADOS · Setup ideal</div>`;
-  } else if (d.signal !== 'neutral' && isConf && d.score >= 8 && d.vol.ratio >= 2) {
-    banner = `<div class="banner b-fuerte">🔥 FUERTE · 1H CONFIRMA · Score ${d.score}/9</div>`;
-  } else if (d.signal.startsWith('trend')) {
-    const dir = d.signal === 'trend_long' ? 'ALCISTA' : 'BAJISTA';
-    banner = isConf
-      ? `<div class="banner b-trend-${d.signal === 'trend_long' ? 'long' : 'short'}">📊 TREND ${dir} · 1H ALINEADO</div>`
-      : `<div class="banner b-trend-${d.signal === 'trend_long' ? 'long' : 'short'}">📊 TREND ${dir} · Verificar 1H</div>`;
-  } else if (isConf) {
-    banner = `<div class="banner b-confirm">✅ 1H CONFIRMA · 4H ${aligned4h ? 'OK' : 'diferente'}</div>`;
-  } else {
-    banner = `<div class="banner b-neutral">↔ SIN CONFIRMACIÓN 1H</div>`;
-  }
-
+  if (isElite) banner = `<div class="banner b-elite">👑 ELITE · Score ${d.score}/9 · Vol ${d.vol.ratio.toFixed(1)}x · StochK ${d.stochK?.toFixed(0)} · Pullback ${d.pbPct.toFixed(2)}% · 4H+1H ALINEADOS</div>`;
+  else if (d.signal === 'neutral') banner = `<div class="banner b-neutral">✗ SIN SEÑAL · Score ${d.score}/9</div>`;
+  else if (isConf && d.score >= 8 && d.vol.ratio >= 2) banner = `<div class="banner b-fuerte">🔥 FUERTE · 1H CONFIRMA · Score ${d.score}/9 · ENTRA</div>`;
+  else if (d.signal.startsWith('trend')) { const dir = d.signal === 'trend_long' ? 'ALCISTA' : 'BAJISTA'; if (isConf) banner = `<div class="banner b-trend-${d.signal === 'trend_long' ? 'long' : 'short'}">📊 TREND ${dir} · 1H ALINEADO · Pullback ${d.pbPct.toFixed(2)}% · ENTRA</div>`; else banner = `<div class="banner b-trend-${d.signal === 'trend_long' ? 'long' : 'short'}">📊 TREND ${dir} · Pullback ${d.pbPct.toFixed(2)}% · Verificar 1H</div>`; }
+  else if (isConf) banner = `<div class="banner b-confirm">✅ 1H CONFIRMA · Tendencia alineada</div>`;
+  else banner = `<div class="banner b-neutral">↔ 1H LATERAL · Precaución</div>`;
   const vwapBadge = d.aboveVWAP === true ? '<span class="vwap-b vwap-up">▲VWAP</span>' : d.aboveVWAP === false ? '<span class="vwap-b vwap-dn">▼VWAP</span>' : '';
-  const htfLabel   = htf === 'bull' ? '1H▲' : htf === 'bear' ? '1H▼' : '1H–';
-  const htfClass   = htf === 'bull' ? 'htf-bull' : htf === 'bear' ? 'htf-bear' : 'htf-neu';
-  const htf4hLabel = htf4h === 'bull' ? '4H▲' : htf4h === 'bear' ? '4H▼' : '4H–';
+  const htfLabel = htf === 'bull' ? '1H▲ ALCISTA' : htf === 'bear' ? '1H▼ BAJISTA' : '1H— LATERAL';
+  const htfClass = htf === 'bull' ? 'htf-bull' : htf === 'bear' ? 'htf-bear' : 'htf-neu';
+  const htf4hLabel = htf4h === 'bull' ? '4H▲ ALCISTA' : htf4h === 'bear' ? '4H▼ BAJISTA' : '4H— LATERAL';
   const htf4hClass = htf4h === 'bull' ? 'htf-bull' : htf4h === 'bear' ? 'htf-bear' : 'htf-neu';
-  const tripleClass = tripleAligned ? 'htf-aligned' : '';
-
   const rsiC = d.rsi > 70 ? '#fbbf24' : d.rsi < 30 ? '#38bdf8' : col;
-  const skC  = d.stochK !== null ? (d.stochK > 80 ? '#fbbf24' : d.stochK < 20 ? '#38bdf8' : '#e2e8f0') : '#64748b';
+  const skC = d.stochK !== null ? (d.stochK > 80 ? '#fbbf24' : d.stochK < 20 ? '#38bdf8' : '#e2e8f0') : '#64748b';
   const bbPct = d.bb ? Math.round(d.bbPos * 100) : '–';
   const bbStr = d.bb ? `L:${fmt(d.bb.lower)} M:${fmt(d.bb.mid)} U:${fmt(d.bb.upper)}` : '–';
   const volPct = Math.min(d.vol.ratio * 50, 100);
-  const vol1hPct = Math.min((vol1h||0) * 50, 100);
-  const vol4hPct = Math.min((vol4h||0) * 50, 100);
-  const vol1hMinForCard = isPrep ? PREP_MIN_VOL_1H : MTF_MIN_VOL;
-  const vol4hMinForCard = isPrep ? PREP_MIN_VOL_4H : MTF_MIN_VOL;
-  const vol1hColor = (vol1h||0) >= vol1hMinForCard ? 'var(--vol)' : 'var(--short)';
-  const vol4hColor = (vol4h||0) >= vol4hMinForCard ? 'var(--vol)' : 'var(--short)';
-
-  let condHTML = '';
-  if (isPrep) {
-    condHTML = (d.triggers || []).map(t => `<span class="cond prep">⏳ ${t}</span>`).join('');
-    condHTML += `<span class="cond ${(vol4h||0) >= PREP_MIN_VOL_4H ? 'ok' : 'fail'}">${(vol4h||0) >= PREP_MIN_VOL_4H ? '✓' : '✗'} Vol 4H ${(vol4h||0).toFixed(1)}x (mín ${PREP_MIN_VOL_4H}x)</span>`;
-    condHTML += `<span class="cond ${(vol1h||0) >= PREP_MIN_VOL_1H ? 'ok' : 'fail'}">${(vol1h||0) >= PREP_MIN_VOL_1H ? '✓' : '✗'} Vol 1H ${(vol1h||0).toFixed(1)}x (mín ${PREP_MIN_VOL_1H}x)</span>`;
-  } else {
-    const passC = d.conds.filter(c => c.ok).slice(0, 5);
-    const failC = d.conds.filter(c => !c.ok).slice(0, 2);
-    condHTML = [...passC.map(c => `<span class="cond ok">✓ ${c.label}</span>`), ...failC.map(c => `<span class="cond fail">✗ ${c.label}</span>`), d.squeeze ? '<span class="cond prep">⚡ SQUEEZE</span>' : ''].join('');
-    condHTML += `<span class="cond ${(vol4h||0) >= MTF_MIN_VOL ? 'ok' : 'fail'}">${(vol4h||0) >= MTF_MIN_VOL ? '✓' : '✗'} Vol 4H ${(vol4h||0).toFixed(1)}x</span>`;
-    condHTML += `<span class="cond ${(vol1h||0) >= MTF_MIN_VOL ? 'ok' : 'fail'}">${(vol1h||0) >= MTF_MIN_VOL ? '✓' : '✗'} Vol 1H ${(vol1h||0).toFixed(1)}x</span>`;
-    // FIX G — mostrar StochK real de 1H/4H en las condiciones de la tarjeta
-    if (typeof stoch1h === 'number') condHTML += `<span class="cond ${extended ? 'fail' : 'ok'}">StochK 1H ${stoch1h.toFixed(1)}</span>`;
-    if (typeof stoch4h === 'number') condHTML += `<span class="cond ${extended ? 'fail' : 'ok'}">StochK 4H ${stoch4h.toFixed(1)}</span>`;
-  }
-
+  const passC = d.conds.filter(c => c.ok).slice(0, 5);
+  const failC = d.conds.filter(c => !c.ok).slice(0, 2);
+  const condHTML = [...passC.map(c => `<span class="cond ok">✓ ${c.label}</span>`), ...failC.map(c => `<span class="cond fail">✗ ${c.label}</span>`), d.squeeze ? '<span class="cond warn">⚡ SQUEEZE</span>' : ''].join('');
   let pbHTML = '';
   if (d.signal.startsWith('trend')) {
     const pbColor = d.pbPct < 0.5 ? '#00ff88' : d.pbPct < 1.5 ? '#fbbf24' : '#ff3366';
-    const pbPct2  = Math.min(d.pbPct * 20, 100);
-    const pbMsg   = d.pbPct < 0.5 ? 'EN EMA9 · Entrada ideal' : d.pbPct < 1.5 ? 'Cerca EMA9' : 'Lejos EMA9 · Espera';
-    pbHTML = `<div class="pullback-row"><span class="pb-label">DIST EMA9</span><div class="pb-track"><div class="pb-fill" style="width:${pbPct2}%;background:${pbColor}"></div></div><span class="pb-val" style="color:${pbColor}">${d.pbPct.toFixed(2)}%</span></div><div style="font-size:8px;text-align:center;margin-bottom:6px;">${pbMsg}</div>`;
+    const pbPct2 = Math.min(d.pbPct * 20, 100);
+    const pbMsg = d.pbPct < 0.5 ? 'EN EMA9 · Entrada ideal' : d.pbPct < 1.5 ? 'Cerca EMA9' : 'Lejos EMA9 · Espera';
+    pbHTML = `<div class="pullback-row"><span class="pb-label">DIST EMA9</span><div class="pb-track"><div class="pb-fill" style="width:${pbPct2}%;background:${pbColor}"></div><div class="pb-ideal" style="left:10%"></div></div><span class="pb-val" style="color:${pbColor}">${d.pbPct.toFixed(2)}%</span></div><div style="font-size:8px;text-align:center;margin-bottom:6px;">${pbMsg}</div>`;
   }
-
   let riskHTML = '';
   if (d.signal !== 'neutral') {
-    const dir = d.signal.includes('long') ? 'long' : 'short';
+    const dir = d.signal === 'early_long' || d.signal === 'trend_long' ? 'long' : 'short';
     const rk = calcRisk(d.price, dir, d.bb, d.atr);
-    riskHTML = `<div class="risk">
-      <div class="risk-hdr"><span>⚡ RIESGO</span><span>${rk.leverage}x · SL ${rk.slPct.toFixed(2)}% · $${rk.riskUSDT.toFixed(0)}</span></div>
-      <div class="risk-grid">
-        <div class="rcell"><div class="rlbl">STOP LOSS</div><div class="rval" style="color:#ff3366">$${fmt(rk.sl)}</div></div>
-        <div class="rcell"><div class="rlbl">TP1 · 1.5R</div><div class="rval" style="color:#fbbf24">$${fmt(rk.tp1)}</div></div>
-        <div class="rcell"><div class="rlbl">TP2 · 2.5R</div><div class="rval" style="color:#00ff88">$${fmt(rk.tp2)}</div></div>
-      </div>
-      <div class="risk-bot">
-        <div class="rcell"><div class="rlbl">CONTRATOS</div><div class="rval">${cStr(rk.contracts)}</div></div>
-        <div class="rcell"><div class="rlbl">MARGEN</div><div class="rval">$${rk.margin.toFixed(2)}</div></div>
-      </div>
-    </div>`;
+    riskHTML = `<div class="risk"><div class="risk-hdr"><span>⚡ RIESGO</span><span>${rk.leverage}x · SL ${rk.slPct.toFixed(2)}% · $${rk.riskUSDT.toFixed(0)}</span></div><div class="risk-grid"><div class="rcell"><div class="rlbl">STOP LOSS</div><div class="rval" style="color:#ff3366">$${fmt(rk.sl)}</div></div><div class="rcell"><div class="rlbl">TP1 · 1.5R</div><div class="rval" style="color:#fbbf24">$${fmt(rk.tp1)}</div></div><div class="rcell"><div class="rlbl">TP2 · 2.5R</div><div class="rval" style="color:#00ff88">$${fmt(rk.tp2)}</div></div></div><div class="risk-bot"><div class="rcell"><div class="rlbl">CONTRATOS</div><div class="rval">${cStr(rk.contracts)}</div></div><div class="rcell"><div class="rlbl">MARGEN</div><div class="rval">$${rk.margin.toFixed(2)}</div></div></div></div>`;
   }
-
-  const eliteClass = isElite ? 'elite-card' : isPrep ? 'prep-card' : '';
-  cardDataStore[symbol] = { d, htf, htf4h, vol1h, vol4h, stoch1h, stoch4h, fresh };
-
-  return `<div class="card ${d.signal} ${eliteClass}" style="animation-delay:${delay}ms" onclick="openChartFromStore('${symbol}')">
+  const eliteClass = isElite ? 'elite-card' : '';
+  // Botón gráfico con datos de la tarjeta
+  const cardData = { d, htf, htf4h };
+  const chartBtn = `<button class="chart-btn" onclick="event.stopPropagation();openChart('${symbol}', ${JSON.stringify(cardData).replace(/"/g, '&quot;')})" style="background:rgba(56,189,248,0.1);border:1px solid var(--accent);color:var(--accent);font-size:10px;padding:2px 8px;border-radius:12px;cursor:pointer;font-family:'Space Mono',monospace;transition:0.2s;" onmouseover="this.style.background='rgba(56,189,248,0.3)'" onmouseout="this.style.background='rgba(56,189,248,0.1)'">📊 Gráfico</button>`;
+  
+  return `<div class="card ${d.signal} ${eliteClass}" style="animation-delay:${delay}ms" onclick="openChart('${symbol}', ${JSON.stringify(cardData).replace(/"/g, '&quot;')})">
     <div class="card-top">
       <div>
-        <div class="sym" style="color:${isPrep ? 'var(--preparing)' : 'var(--text)'}">${symbol.replace('USDT','').replace('1000','')}</div>
-        <div class="htf-badge-group">
-          ${vwapBadge}
-          <span class="htf-b ${htf4hClass}">${htf4hLabel}</span>
-          <span class="htf-b ${htfClass}">${htfLabel}</span>
-          ${tripleAligned && !extended ? '<span class="htf-b htf-aligned">✅ 4H+1H+15M</span>' : ''}
-          ${tripleAligned && extended ? '<span class="htf-b" style="background:rgba(251,191,36,0.15);color:#fbbf24;border:1px solid rgba(251,191,36,0.4);">⚠ EXTENDIDO</span>' : ''}
-          ${d.squeeze ? '<span style="font-size:8px;">⚡SQZ</span>' : ''}
-        </div>
+        <div class="sym">${symbol.replace('USDT', '').replace('1000', '')}</div>
+        <div class="htf-badge-group">${vwapBadge}<span class="htf-b ${htfClass}">${htfLabel}</span><span class="htf-b ${htf4hClass}">${htf4hLabel}</span>${d.squeeze ? '<span style="font-size:8px;">⚡SQZ</span>' : ''}</div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
-        <span class="sig-badge" style="background:${isPrep ? 'rgba(192,132,252,0.15)' : 'transparent'};color:${col};border:1px solid ${col}">${sigLabel}</span>
+        <span class="sig-badge">${sigLabel}</span>
         <span style="font-size:11px;font-weight:700;color:${isElite ? 'var(--elite)' : col}">${d.score}/9${isConf ? ' ⭐' : ''}</span>
-        <button onclick="event.stopPropagation();openChartFromStore('${symbol}')"
-          style="background:rgba(56,189,248,0.1);border:1px solid var(--accent);color:var(--accent);font-size:10px;padding:2px 8px;border-radius:12px;cursor:pointer;font-family:'Space Mono',monospace;"
-          onmouseover="this.style.background='rgba(56,189,248,0.3)'" onmouseout="this.style.background='rgba(56,189,248,0.1)'">
-          📊 Gráfico
-        </button>
+        ${chartBtn}
       </div>
     </div>
     <div class="price">$${fmt(d.price)}</div>
     <div class="score-row">
-      <div class="score-track"><div class="score-fill" style="width:${(d.score/9)*100}%;background:${isElite ? 'var(--elite)' : isPrep ? 'var(--preparing)' : col}"></div></div>
-      <div class="score-num" style="color:${isElite ? 'var(--elite)' : isPrep ? 'var(--preparing)' : col}">${d.score}/9</div>
+      <div class="score-track"><div class="score-fill" style="width:${(d.score / 9) * 100}%;background:${isElite ? 'var(--elite)' : col}"></div></div>
+      <div class="score-num" style="color:${isElite ? 'var(--elite)' : col}">${d.score}/9</div>
     </div>
     ${banner}
     ${pbHTML}
@@ -1361,112 +706,52 @@ function renderCard(symbol, d, htf, htf4h, delay, vol1h, vol4h, stoch1h, stoch4h
       <div class="rsi-track"><div class="rsi-fill" style="width:${d.rsi}%;background:${rsiC}"></div></div>
     </div>
     <div class="bb-row">BB: ${bbStr}</div>
-    <div class="vol-mtf-wrap">
-      <div class="vol-row"><span>VOL 15M</span><div class="vol-track"><div class="vol-fill" style="width:${volPct}%"></div></div><span>${d.vol.ratio.toFixed(1)}x${d.volSpike ? ' ⚡' : ''}</span></div>
-      <div class="vol-row"><span>VOL 1H</span><div class="vol-track"><div class="vol-fill" style="width:${vol1hPct}%;background:${vol1hColor}"></div></div><span style="color:${vol1hColor}">${(vol1h||0).toFixed(1)}x</span></div>
-      <div class="vol-row"><span>VOL 4H</span><div class="vol-track"><div class="vol-fill" style="width:${vol4hPct}%;background:${vol4hColor}"></div></div><span style="color:${vol4hColor}">${(vol4h||0).toFixed(1)}x</span></div>
-    </div>
+    <div class="vol-row"><span>VOL</span><div class="vol-track"><div class="vol-fill" style="width:${volPct}%"></div></div><span>${d.vol.ratio.toFixed(1)}x${d.volSpike ? ' ⚡' : ''}</span></div>
     <div class="conds">${condHTML}</div>
     ${riskHTML}
   </div>`;
 }
 
-function openChartFromStore(symbol) {
-  const data = cardDataStore[symbol];
-  if (data) openChart(symbol, data);
-}
-
-// ============================================================
-// ESCANEO — con caché 4H/1H (trend + volumen) y earlyWarning
-// FIX G — fetchHTF ahora también calcula y cachea el StochK de 1H
-// y 4H (a partir de las mismas velas ya descargadas), para poder
-// detectar si esos timeframes están extendidos sin llamadas extra.
-// ============================================================
-async function fetchHTF(symbol) {
-  const now = Date.now();
-  const cached = htfCache[symbol];
-  if (cached && (now - cached.ts) < HTF_CACHE_TTL) return cached;
-
-  const [r1h, r4h] = await Promise.all([
-    fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=100`),
-    fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=4h&limit=50`)
-  ]);
-  const c1h = r1h.ok ? await r1h.json() : [];
-  const c4h = r4h.ok ? await r4h.json() : [];
-  const htf1h = c1h.length ? trendGeneric(c1h) : 'neutral';
-  const htf4h = c4h.length ? trendGeneric(c4h) : 'neutral';
-  const vol1h = c1h.length >= 21 ? volSpikeCalc(c1h).ratio : 0;
-  const vol4h = c4h.length >= 21 ? volSpikeCalc(c4h).ratio : 0;
-  // FIX G — StochK de 1H/4H, reutilizando las mismas velas ya descargadas.
-  const closes1h = c1h.length ? c1h.map(c => parseFloat(c[4])) : [];
-  const closes4h = c4h.length ? c4h.map(c => parseFloat(c[4])) : [];
-  const stoch1h = closes1h.length ? stochRsi(closes1h).k : null;
-  const stoch4h = closes4h.length ? stochRsi(closes4h).k : null;
-  // FRESCO — sesgo estructural de 4H (swings), guarda velas 1H para
-  // calcular niveles de soporte/resistencia relativos al precio actual.
-  const struct4h = c4h.length >= 10 ? structuralBias(c4h) : 'neutral';
-  const result = { htf1h, htf4h, vol1h, vol4h, stoch1h, stoch4h, struct4h, c1hCandles: c1h, ts: now };
-  htfCache[symbol] = result;
-  return result;
-}
-
+// --------------------------------------------------------------
+// ESCANEO PRINCIPAL (15m, 1H, 4H)
+// --------------------------------------------------------------
 async function scanAll() {
   if (scanning) return;
   scanning = true;
   const btn = document.getElementById('scanBtn');
   btn.disabled = true; btn.textContent = '⏳ ESCANEANDO...';
-  document.getElementById('grid').innerHTML = '<div class="empty">ESCANEANDO 50 PARES · 4H→1H→15M ...</div>';
-
+  document.getElementById('grid').innerHTML = '<div class="empty"><span class="pulse"></span>ESCANEANDO 35 PARES · 15M+1H+4H ...</div>';
   const results = [];
   for (let i = 0; i < PAIRS.length; i++) {
     const sym = PAIRS[i];
     try {
-      const [r15, htfData] = await Promise.all([
+      const [r15, r1h, r4h] = await Promise.all([
         fetch(`https://api.binance.com/api/v3/klines?symbol=${sym}&interval=15m&limit=150`),
-        fetchHTF(sym)
+        fetch(`https://api.binance.com/api/v3/klines?symbol=${sym}&interval=1h&limit=100`),
+        fetch(`https://api.binance.com/api/v3/klines?symbol=${sym}&interval=4h&limit=50`)
       ]);
-      if (!r15.ok) throw new Error();
-      const c15 = await r15.json();
+      if (!r15.ok || !r1h.ok || !r4h.ok) throw new Error();
+      const [c15, c1h, c4h] = await Promise.all([r15.json(), r1h.json(), r4h.json()]);
       const closes = c15.map(c => parseFloat(c[4]));
-      const { htf1h, htf4h, vol1h, vol4h, stoch1h, stoch4h, struct4h, c1hCandles } = htfData;
-
-      let d = evalPair(closes, c15);
+      const d = evalPair(closes, c15);
       if (!d) throw new Error();
-
-      const hasConfirmed4H = d.signal !== 'neutral' && htf4h === (d.signal.includes('long') ? 'bull' : 'bear');
-
-      if (!hasConfirmed4H) {
-        const ew = earlyWarning(closes, c15, htf1h, htf4h, vol1h, vol4h);
-        if (ew) d = ew;
-        else if (d.signal !== 'neutral' && !hasConfirmed4H) {
-          d = { ...d, signal: 'neutral' };
-        }
-      }
-
-      // FRESCO — sistema paralelo, no sustituye al scoring 9/9 existente.
-      const levels1h = c1hCandles && c1hCandles.length ? nearestLevels(c1hCandles, closes[closes.length - 1]) : { resistance: null, support: null };
-      const fresh = freshSignal(closes, c15, struct4h, levels1h, vol1h, vol4h);
-
-      results.push({ symbol: sym, d, htf: htf1h, htf4h, vol1h, vol4h, stoch1h, stoch4h, struct4h, fresh });
-    } catch(e) { /* ignorar */ }
-
+      const htf1h = trendGeneric(c1h);
+      const htf4h = trendGeneric(c4h);
+      results.push({ symbol: sym, d, htf: htf1h, htf4h });
+    } catch (e) { /* ignorar errores */ }
     document.getElementById('prog').style.width = `${((i + 1) / PAIRS.length) * 100}%`;
     await new Promise(r => setTimeout(r, 80));
   }
-
   results.sort((a, b) => {
-    const rank = r => isEliteSignal(r) ? 0 : isSuperSignal(r) ? 1 : isPreparing(r) && has4HAlignment(r) ? 2 : isConfirmed(r) ? 3 : 4;
-    const ra = rank(a), rb = rank(b);
-    if (ra !== rb) return ra - rb;
+    const aElite = isEliteSignal(a) ? 0 : (isSuperSignal(a) ? 1 : 2);
+    const bElite = isEliteSignal(b) ? 0 : (isSuperSignal(b) ? 1 : 2);
+    if (aElite !== bElite) return aElite - bElite;
     return b.d.score - a.d.score;
   });
-
   allCards = results;
   renderGrid();
   updateStats();
   checkAndNotify(results);
-  addToHistory(results);
-
   const now = new Date();
   document.getElementById('tsLeft').innerHTML = `<span class="live-dot"></span>ACTUALIZADO ${now.toLocaleTimeString('es-ES')}`;
   document.getElementById('prog').style.width = '100%';
@@ -1474,95 +759,46 @@ async function scanAll() {
   btn.disabled = false; btn.textContent = '⚡ ESCANEAR';
   scanning = false;
 }
-
 function renderGrid() {
   const grid = document.getElementById('grid');
   let f = allCards;
-  if (currentFilter === 'elite')     f = allCards.filter(r => isEliteSignal(r));
-  else if (currentFilter === 'super')f = allCards.filter(r => isSuperSignal(r));
-  else if (currentFilter === 'preparing') f = allCards.filter(r => isPreparing(r) && has4HAlignment(r));
-  else if (currentFilter === 'fresh') f = allCards.filter(r => isFresh(r));
-  else if (currentFilter === 'twolayer') f = allCards.filter(r => isTwoLayer(r));
+  if (currentFilter === 'elite') f = allCards.filter(r => isEliteSignal(r));
+  else if (currentFilter === 'super') f = allCards.filter(r => isSuperSignal(r));
   else if (currentFilter === 'confirmed') f = allCards.filter(r => isConfirmed(r));
-  else if (currentFilter === 'signals')   f = allCards.filter(r => r.d.signal !== 'neutral');
-  if (f.length === 0) {
-    grid.innerHTML = '<div class="empty">Sin señales para este filtro · Prueba tocando otro número arriba (⏳ PREP, 🌱 FRESCO, 🎯 2 CAPAS) o la pastilla 🎯 SEÑALES</div>';
-    return;
-  }
-  grid.innerHTML = f.map((r, i) => renderCard(r.symbol, r.d, r.htf, r.htf4h, i * 30, r.vol1h, r.vol4h, r.stoch1h, r.stoch4h, r.fresh)).join('');
+  else if (currentFilter === 'signals') f = allCards.filter(r => r.d.signal !== 'neutral');
+  else if (currentFilter === 'all') f = allCards;
+  if (f.length === 0) { grid.innerHTML = '<div class="empty">Sin señales para este filtro</div>'; return; }
+  grid.innerHTML = f.map((r, i) => renderCard(r.symbol, r.d, r.htf, r.htf4h, i * 30)).join('');
 }
-
 function updateStats() {
-  document.getElementById('sElite').textContent = allCards.filter(c => isEliteSignal(c)).length;
-  document.getElementById('sSuper').textContent = allCards.filter(c => isSuperSignal(c)).length;
-  document.getElementById('sPrep').textContent  = allCards.filter(c => isPreparing(c) && has4HAlignment(c)).length;
-  document.getElementById('sFresh').textContent = allCards.filter(c => isFresh(c)).length;
-  document.getElementById('s2L').textContent = allCards.filter(c => isTwoLayer(c)).length;
+  const eliteCount = allCards.filter(c => isEliteSignal(c)).length;
+  const superCount = allCards.filter(c => isSuperSignal(c)).length;
+  document.getElementById('sElite').textContent = eliteCount;
+  document.getElementById('sSuper').textContent = superCount;
   document.getElementById('sTotal').textContent = allCards.length;
 }
-
 function setFilter(f, el) {
   currentFilter = f;
   document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active'));
   el.classList.add('active');
   if (allCards.length > 0) renderGrid();
 }
-
-// FIX H — permite filtrar tocando los números de arriba (ELITE, SUPER,
-// PREP, FRESCO, 2 CAPAS, TOTAL), no solo las pastillas de abajo. Antes
-// esos contadores eran solo informativos y tocarlos no hacía nada,
-// dando la sensación de que el filtro estaba roto.
-function selectFilterByName(name) {
-  const btn = document.querySelector(`.fbtn[data-filter="${name}"]`);
-  if (btn) setFilter(name, btn);
-}
-
 function setAlertMode(mode) {
   alertMode = mode;
-  ['alertOff','alertElite','alertSuper','alertAll'].forEach(id => {
-    document.getElementById(id).classList.remove('active','elite-active');
-  });
+  document.getElementById('alertOff').classList.remove('active', 'elite-active');
+  document.getElementById('alertElite').classList.remove('active', 'elite-active');
+  document.getElementById('alertSuper').classList.remove('active', 'elite-active');
+  document.getElementById('alertAll').classList.remove('active', 'elite-active');
   if (mode === 'off') document.getElementById('alertOff').classList.add('active');
   else if (mode === 'elite') document.getElementById('alertElite').classList.add('elite-active');
   else if (mode === 'super') document.getElementById('alertSuper').classList.add('active');
   else if (mode === 'all') document.getElementById('alertAll').classList.add('active');
 }
-
-// ============================================================
-// AUTO — cada 15 minutos con countdown visible
-// ============================================================
-let countdownSecs = 900;
-
 function toggleAuto() {
   const btn = document.getElementById('autoBtn');
-  const cdEl = document.getElementById('autoCountdown');
-  if (autoInterval) {
-    clearInterval(autoInterval);
-    clearInterval(autoCountdownInterval);
-    autoInterval = null; autoCountdownInterval = null;
-    btn.textContent = '▶ AUTO OFF'; btn.classList.remove('active');
-    cdEl.style.display = 'none';
-  } else {
-    countdownSecs = 900;
-    cdEl.style.display = 'inline-block';
-    document.getElementById('cdSecs').textContent = countdownSecs;
-    autoInterval = setInterval(() => {
-      scanAll();
-      countdownSecs = 900;
-    }, 900000);
-    autoCountdownInterval = setInterval(() => {
-      countdownSecs--;
-      if (countdownSecs < 0) countdownSecs = 900;
-      document.getElementById('cdSecs').textContent = countdownSecs;
-    }, 1000);
-    btn.textContent = '⏹ AUTO ON'; btn.classList.add('active');
-    scanAll();
-  }
+  if (autoInterval) { clearInterval(autoInterval); autoInterval = null; btn.textContent = '▶ AUTO OFF'; btn.classList.remove('active'); }
+  else { autoInterval = setInterval(scanAll, 90000); btn.textContent = '⏹ AUTO ON'; btn.classList.add('active'); scanAll(); }
 }
-
-// ============================================================
-// INIT
-// ============================================================
 requestNotificationPermission();
 updateCap();
 setAlertMode('elite');
