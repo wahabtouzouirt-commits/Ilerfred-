@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ScalpScan Pro v6.9 - Modo Agresivo (Validación Volumen Multi-TF incl. PREPARING)</title>
+<title>ScalpScan Pro v6.9 + Hyperliquid - Modo Agresivo (Validación Volumen Multi-TF incl. PREPARING)</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -229,7 +229,7 @@
 <div class="header">
   <div class="logo">SCALP<span>SCAN</span> PRO</div>
   <div class="badges">
-    <div class="badge badge-v">v6.9 · MODO AGRESIVO</div>
+    <div class="badge badge-v">v6.9 · MODO AGRESIVO · +HL</div>
     <div class="badge badge-tf">4H→1H→15M · TOP 50</div>
   </div>
 </div>
@@ -1584,5 +1584,183 @@ requestNotificationPermission();
 updateCap();
 setAlertMode('elite');
 </script>
-</body>
-</html>
+<script>
+/* ============================================================
+   hl-addon.js — ScalpScan Pro → Hyperliquid  (v1)
+   No toca la lógica de señales. Solo añade, a cada tarjeta con señal:
+   · si el par existe en Hyperliquid (y con qué nombre: BTC, kPEPE, ...)
+   · precio de Hyperliquid vs Binance (diferencia %)
+   · ficha de orden lista para copiar: entrada, SL, TP1, TP2, tamaño
+     en unidades del activo, margen aislado, liquidación estimada, funding
+   · aviso si la liquidación queda demasiado cerca del SL
+   (Integrado en este HTML: no hace falta ningún archivo aparte.)
+   ============================================================ */
+(function () {
+  'use strict';
+
+  const CFG = {
+    // Valores iniciales de la barra CUENTA / RIESGO / LEV (editables en la página).
+    applyDefaults: true,
+    defaults: { capital: 300, riskPct: 1, leverage: 5 },
+    priceDiffWarnPct: 0.3,     // aviso si HL y Binance difieren más de esto
+    priceDiffMaxPct: 5,        // por encima, se asume que el par NO es el mismo activo
+    minOrderUsd: 10,           // mínimo de valor de orden en Hyperliquid
+    liqRatioGood: 3,           // distancia a liquidación / distancia al SL
+    liqRatioMin: 1.5,
+    fetchTimeoutMs: 8000,
+    // Binance → nombres alternativos en Hyperliquid (además de 'k'+BASE)
+    aliases: { MATIC: ['POL', 'MATIC'], FTM: ['S', 'FTM'] }
+  };
+
+  let HL = { ok: false, ts: 0, byName: {}, error: null };
+  let onlyHL = false;
+  const TICKETS = {}; // texto de la ficha por símbolo, para el botón Copiar
+
+  // ---------- funciones puras (testeables) ----------
+  function resolveAsset(byName, binanceSymbol) {
+    const base = binanceSymbol.replace(/USDT$/, '');
+    const cands = (CFG.aliases[base] || [base]).concat(['k' + base]);
+    for (const name of cands) {
+      const a = byName[name];
+      if (a) return { asset: a, mult: name === 'k' + base ? 1000 : 1 };
+    }
+    return null;
+  }
+
+  // Hyperliquid: máx. 5 cifras significativas y 6 - szDecimals decimales (perps);
+  // los enteros siempre valen.
+  function roundPx(px, szDecimals) {
+    if (!isFinite(px) || px <= 0) return px;
+    if (px >= 100000) return Math.round(px);
+    const maxDec = Math.max(0, 6 - szDecimals);
+    return Number(Number(px.toPrecision(5)).toFixed(maxDec));
+  }
+
+  function floorSize(units, szDecimals) {
+    const f = Math.pow(10, szDecimals);
+    return Number((Math.floor(units * f + 1e-9) / f).toFixed(szDecimals));
+  }
+
+  // liq = price − side·margin_disponible/tamaño/(1 − l·side), con l = 1/(2·maxLev)
+  // y margen aislado = notional/lev (fórmula documentada por Hyperliquid).
+  function liqPrice(entry, lev, maxLev, isLong) {
+    const l = 1 / (2 * maxLev);
+    const k = 1 / lev - l;
+    return isLong ? entry * (1 - k / (1 - l)) : entry * (1 + k / (1 + l));
+  }
+
+  // d: datos de la señal del scanner; hl: {asset, mult}; P: {capital, riskPct, leverage};
+  // rk: resultado de calcRisk() del scanner.
+  function buildTicket(d, hl, P, rk) {
+    const a = hl.asset, mult = hl.mult;
+    const isLong = d.signal.includes('long');
+    const dir = isLong ? 1 : -1;
+    const hlEq = a.mark / mult;                       // precio HL en unidades de Binance
+    const diffPct = (hlEq - d.price) / d.price * 100;
+    if (Math.abs(diffPct) > CFG.priceDiffMaxPct) return { mismatch: true, name: a.name, diffPct };
+
+    const slDist = Math.abs(d.price - rk.sl);
+    const tp1Dist = Math.abs(rk.tp1 - d.price);
+    const tp2Dist = Math.abs(rk.tp2 - d.price);
+    const toHL = v => roundPx(v * mult, a.szDecimals);
+    const entry = toHL(hlEq);
+    const sl = toHL(hlEq - dir * slDist);
+    const tp1 = toHL(hlEq + dir * tp1Dist);
+    const tp2 = toHL(hlEq + dir * tp2Dist);
+
+    const notional = rk.contracts * d.price;          // = riesgo / distancia al SL
+    const units = floorSize(notional / a.mark, a.szDecimals);
+    const notionalReal = units * a.mark;
+    const lev = Math.min(P.leverage, a.maxLev);
+    const margin = notionalReal / lev;
+    const slPct = slDist / hlEq * 100;
+    const riskReal = notionalReal * slPct / 100;
+    const liq = liqPrice(hlEq, lev, a.maxLev, isLong);
+    const liqPct = Math.abs(liq - hlEq) / hlEq * 100;
+    const ratio = liqPct / slPct;
+
+    const warns = [];
+    if (units <= 0) warns.push(['bad', 'Tamaño demasiado pequeño para este activo']);
+    else if (notionalReal < CFG.minOrderUsd) warns.push(['bad', `Orden de $${notionalReal.toFixed(2)} < mínimo $${CFG.minOrderUsd} de Hyperliquid`]);
+    if (margin > P.capital) warns.push(['bad', `Margen $${margin.toFixed(2)} > cuenta $${P.capital}. Sube el apalancamiento o baja el riesgo`]);
+    if (ratio < CFG.liqRatioMin) warns.push(['bad', `Liquidación muy cerca del SL (x${ratio.toFixed(1)}). Baja el apalancamiento`]);
+    else if (ratio < CFG.liqRatioGood) warns.push(['warn', `Liquidación algo cerca del SL (x${ratio.toFixed(1)}). Mejor con menos apalancamiento`]);
+    if (Math.abs(diffPct) > CFG.priceDiffWarnPct) warns.push(['warn', `Precio HL difiere ${diffPct.toFixed(2)}% de Binance: revisa la entrada`]);
+    if (P.leverage > a.maxLev) warns.push(['warn', `Este activo admite máx. ${a.maxLev}x: se usa ${a.maxLev}x`]);
+    if (mult !== 1) warns.push(['info', `Activo x${mult} (${a.name}): precios y tamaños en unidades de Hyperliquid`]);
+
+    return {
+      mismatch: false, name: a.name, isLong, mult, diffPct,
+      entry, sl, tp1, tp2, units, notional: notionalReal, lev, margin,
+      riskReal, liq: roundPx(liq * mult, a.szDecimals), liqPct, ratio, slPct,
+      funding: a.funding, onlyIsolated: a.onlyIsolated, warns
+    };
+  }
+
+  function ticketText(t) {
+    return [
+      `ScalpScan → Hyperliquid`,
+      `${t.name} · ${t.isLong ? 'LONG' : 'SHORT'}`,
+      `Margen: Isolated ${t.lev}x`,
+      `Entrada (Limit): ${t.entry}`,
+      `Tamaño: ${t.units} ${t.name} (~$${t.notional.toFixed(2)})`,
+      `SL: ${t.sl}`,
+      `TP1: ${t.tp1}  |  TP2: ${t.tp2}`,
+      `Liq. aprox.: ${t.liq} (${t.liqPct.toFixed(1)}% desde la entrada)`
+    ].join('\n');
+  }
+
+  // ---------- datos de Hyperliquid ----------
+  async function refreshHL() {
+    const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = ctl ? setTimeout(() => ctl.abort(), CFG.fetchTimeoutMs) : null;
+    try {
+      const r = await fetch('https://api.hyperliquid.xyz/info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'metaAndAssetCtxs' }),
+        signal: ctl ? ctl.signal : undefined
+      });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const [meta, ctxs] = await r.json();
+      const byName = {};
+      meta.universe.forEach((u, i) => {
+        if (u.isDelisted) return;
+        const c = ctxs[i] || {};
+        const mark = parseFloat(c.markPx);
+        if (!isFinite(mark) || mark <= 0) return;
+        byName[u.name] = {
+          name: u.name, maxLev: u.maxLeverage, szDecimals: u.szDecimals,
+          onlyIsolated: !!u.onlyIsolated, mark, funding: parseFloat(c.funding)
+        };
+      });
+      HL = { ok: true, ts: Date.now(), byName, error: null };
+    } catch (e) {
+      HL = { ok: false, ts: Date.now(), byName: {}, error: (e && e.name === 'AbortError') ? 'timeout' : String(e && e.message || e) };
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+    setStatus();
+    return HL;
+  }
+
+  // ---------- interfaz ----------
+  function setStatus() {
+    if (typeof document === 'undefined') return;
+    const el = document.getElementById('hlStatus');
+    if (!el) return;
+    const hora = new Date().toLocaleTimeString('es-ES');
+    el.textContent = HL.ok
+      ? `HL ✓ ${Object.keys(HL.byName).length} mercados · ${hora}`
+      : `HL ✗ sin datos (${HL.error || '?'}) · solo cálculo Binance`;
+    el.style.color = HL.ok ? 'var(--long)' : 'var(--short)';
+  }
+
+  function injectUI() {
+    const css = document.createElement('style');
+    css.textContent = `
+      .hl-box{margin-top:10px;border:1px solid rgba(56,189,248,.35);border-radius:6px;overflow:hidden;background:rgba(56,189,248,.04);}
+      .hl-hdr{font-family:'Space Mono',monospace;font-size:9px;padding:5px 10px;display:flex;justify-content:space-between;color:var(--accent);}
+      .hl-warn{font-family:'Space Mono',monospace;font-size:9px;padding:4px 10px;border-top:1px solid var(--border);}
+      .hl-warn.bad{color:var(--short);} .hl-warn.warn{color:var(--warn);} .hl-warn.info{color:var(--muted);}
+      .hl-copy{width:100%;font-family:'Space Mono',monospace;font-size:10px;padding:6px;border:none;border-top:1px solid var(--border);backgrou
